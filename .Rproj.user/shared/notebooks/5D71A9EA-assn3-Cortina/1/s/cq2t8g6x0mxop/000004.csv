@@ -1,0 +1,6 @@
+"0","#land-sea temperature difference data"
+"0","benguela.tmp <- read.csv(""http://faraway.neu.edu/data/assn4_temperature_benguela.csv"")"
+"0","humboldt.tmp <- read.csv(""http://faraway.neu.edu/data/assn4_temperature_humboldt.csv"")"
+"0","canary.tmp <- read.csv(""http://faraway.neu.edu/data/assn4_temperature_canary.csv"")"
+"0","california.tmp <- read.csv(""http://faraway.neu.edu/data/assn4_temperature_california.csv"")"
+"0","head(benguela.tmp)"

@@ -1,0 +1,695 @@
+---
+title: "Respiration Analysis"
+author: Sara M Schaal
+output: pdf_document
+---
+
+# Initial Data Manipulation
+
+```{r}
+# Read in data
+resp  <- read.csv("Fish_Measurement_Data_2.csv")
+
+# Subset dataframe
+df.resp <- subset(resp, select = c("Species", "Length_mm", "Weight_g", 
+                                   "Starting_DO_.ppm", "DO_30min_ppm", 
+                                   "Experimental_Treatment_C", "Bucket"))
+
+# Remove all rows that have any NA's 
+df.respiration <- na.omit(df.resp)
+
+# Calculate Respiration Rate
+df.respiration$respirationrate <- (df.respiration$Starting_DO_.ppm-
+                                     df.respiration$DO_30min_ppm)/30
+
+# Take only positive values
+df.respiration_pos <- df.respiration[df.respiration$respirationrate > 0, ]
+
+# Subset data for the two species
+copper <- df.respiration_pos[df.respiration_pos$Species=="Copper", ] 
+black <- df.respiration_pos[df.respiration_pos$Species %in% 
+                              c("Black", "Yellowtail", "Silver"), ]
+
+# put in experimental treatment temperatures
+  black$exp_temp  <- c(10.33846, 10.33846, 10.33846, 10.45769, 10.45769, 18.48462,
+                       18.48462, 18.48462, 20.18269, 20.18269, 20.18269, 13.46111,
+                       13.46111, 20.71346, 20.71346, 20.71346, 20.97308, 20.97308, 
+                       22.61731, 22.61731, 19.35962, 19.35962, 19.35962, 15.23462,
+                       15.23462, 15.23462, 19.98462, 19.98462, 17.86923, 17.86923,
+                       17.86923, 13.89808, 13.89808, 22.35682, 22.35682, 19.45192,
+                       19.45192, 19.45192)
+
+  copper$exp_temp <- c(10.58704, 10.58704, 10.51111, 10.51111, 10.51111, 10.51111,
+                       19.22222, 19.22222, 19.22222, 19.91852, 19.91852, 19.91852, 
+                       21.03333, 21.03333, 13.46111, 13.46111, 13.46111, 13.46111, 
+                       22.01296, 22.01296, 22.01296, 21.40741, 21.40741, 21.40741, 
+                       22.85417, 17.97037, 17.97037, 17.97037, 17.97037, 15.10000, 
+                       15.10000, 18.90926, 18.90926, 18.90926, 17.15000, 17.15000, 
+                       17.15000, 13.71667, 19.98889, 19.98889)
+```
+
+# Plotting & Analysis
+## Copper Rockfish
+## Method 1 - Finding Residuals of Respiration Rate vs Weight first, then plotting against treatment temperature
+<br>
+
+```{r}
+# Do an initial plot to determine the affect of weight on respiration rate
+plot(copper$respirationrate~copper$Weight_g, bty = "l", pch = 18,
+     col = "blue", main = "Affect of Weight on Respiration Rate - Copper
+     Rockfish", xlab = "Weight (g)", ylab = "Respiration Rate (ppm O2 min-1)")
+
+# Look at distribution of data
+hist(copper$respirationrate, xlab = "Respiration Rate (ppm O2 min-1)")
+```
+
+```{r, echo=FALSE}
+require(ggplot2)
+```
+
+```{r}
+hist(copper$Weight_g, xlab = "Weight (g)")
+# Data has a right-skew - use logarithmic transformation??
+
+cp.mod <- lm(copper$respirationrate~copper$Weight_g)
+
+#Histogram of residuals
+hist(rstandard(cp.mod))
+
+#qqplot to test for normality in residuals
+qqnorm(rstandard(cp.mod))
+qqline(rstandard(cp.mod))
+#Residuals of the model are normally distributed
+
+# Get Residuals
+copper$residuals <- resid(cp.mod)
+
+plot(copper$residuals~copper$exp_temp, bty = "l", pch = 18, col = "blue", 
+     main = "Affect of Temperature on Respiration Rate", xlab = "Treatment Temperature (C)",
+     ylab = "Residuals")
+
+ggplot(copper, aes(x=exp_temp, y=residuals)) + labs(x = "Treatment Temperature (Celcius)", y = "Residuals") + ggtitle("Affect of Temperature on Respiration Rate - Copper Rockfish") + geom_point() + geom_smooth()
+
+```
+\newpage
+
+```{r}
+# Just to look at it: Plot log of each variable
+plot(log(copper$respirationrate)~log(copper$Weight_g), bty = "l", pch = 18, 
+     col = "blue", main = "Copper ", xlab = "log(Weight) (g)", 
+     ylab = "log(Respiration Rate) (ppm O2 min-1)")
+
+# Create linear model
+cp.mod.1 <- lm(log(copper$respirationrate)~log(copper$Weight_g))
+abline(lm(log(copper$respirationrate)~log(copper$Weight_g)), col = "blue")
+
+#Histogram of residuals
+hist(rstandard(cp.mod.1))
+
+#qqplot to test for normality in residuals
+qqnorm(rstandard(cp.mod.1))
+qqline(rstandard(cp.mod.1))
+#Residuals of the model are not quite normally distributed
+
+# Get the residuals of the model
+copper$residuals <- resid(cp.mod.1)  
+
+plot(copper$residuals~copper$exp_temp, bty = "l", pch = 18, 
+     col = "blue", main = "Affect of Temperature on Respiration Rate - Copper",
+     xlab = "Temperature", ylab = "residuals")
+
+abline(lm(copper$residuals~copper$exp_temp), col = "blue")
+
+ggplot(copper, aes(x=exp_temp, y=residuals)) + labs(x = "Treatment Temperature (Celcius)", y = "Residuals") + ggtitle("Affect of Temperature on Respiration Rate - Copper Rockfish") + geom_point() + geom_smooth()
+
+```
+
+\newpage
+
+### Models - AIC model selection
+# Model 5 is significant, but if I systematically drop terms by 2 AIC values, 
+# this model does not come up.
+```{r}
+# Create full model
+full.med1.cp.mod1 <- lm(copper$respirationrate~copper$exp_temp + I(copper$exp_temp^2) + copper$Weight_g + copper$exp_temp:copper$Weight_g)
+summary(full.med1.cp.mod1)
+drop1(full.med1.cp.mod1)
+AICc(step(full.med1.cp.mod1))
+
+# drop interaction
+temp.med1.cp.mod2 <- lm(copper$respirationrate~copper$exp_temp + I(copper$exp_temp^2) + copper$Weight_g)
+summary(temp.med1.cp.mod2)
+drop1(temp.med1.cp.mod2)
+# This is the best model
+
+# drop squared
+temp.med1.cp.mod3 <- lm(copper$respirationrate~copper$exp_temp + copper$Weight_g)
+summary(temp.med1.cp.mod3)
+drop1(temp.med1.cp.mod3)
+
+# drop linear
+temp.med1.cp.mod4 <- lm(copper$respirationrate~I(copper$exp_temp^2) + copper$Weight_g)
+summary(temp.med1.cp.mod4)
+
+#drop weight and linear
+temp.med1.cp.mod5 <- lm(copper$respirationrate~I(copper$exp_temp^2))
+summary(temp.med1.cp.mod5)
+### model 5 is significant
+
+```
+\newpage
+
+### Method 2 - Same analysis, but with addition of zeros for those that died during the experiment
+
+
+```{r}
+# Create dataframe with zero data
+zeros.cp  <- read.csv("zeros_cp.csv")
+colnames(zeros.cp) <- c("Species", "Length_mm", "Weight_g", "Starting_DO_.ppm", "DO_30min_ppm", "Experimental_Treatment_C", "Bucket", "respirationrate", "exp_temp", "corr.resp.rate", "residuals")
+copper.zeros <- rbind(copper, zeros.cp)
+
+plot(copper.zeros$respirationrate~copper.zeros$Weight_g, bty = "l", pch = 18, 
+     col = "blue", main = "Affect of Weight on Respiration Rate - Copper",
+     xlab = "Weight (g)", ylab = "Respiration Rate (ppm O2 min-1)" )
+
+# cannot log transform the data because of zeros in data but may not be necessary due
+# residuals being normally distributed
+
+# created a linear model for non-transformed data
+mod.1.cp <- lm(copper.zeros$respirationrate~copper.zeros$Weight_g)
+
+#Histogram of residuals
+hist(rstandard(mod.1.cp))
+
+#qqplot to test for normality in residuals
+qqnorm(rstandard(mod.1.cp))
+qqline(rstandard(mod.1.cp))
+#Residuals of the model are normally distributed
+
+# Plot the residuals 
+copper.zeros$residuals <- resid(mod.1.cp)
+plot(copper.zeros$residuals~copper.zeros$exp_temp, bty = "l", pch = 18, 
+     col = "blue", main = "Affect of Temperature on Respiration Rate - Copper Rockfish",
+     ylab = "Residuals", xlab = "Treatment Temperature (C)" )
+
+abline(lm(copper.zeros$residuals~copper.zeros$exp_temp), col = "blue")
+
+ggplot(copper.zeros, aes(x=exp_temp, y=residuals)) + labs(x = "Treatment Temperature (Celcius)", y = "Residuals") + ggtitle("Affect of Temperature on Respiration Rate - Copper Rockfish") + geom_point() + geom_smooth()
+
+```
+\newpage
+
+## Models - AIC model selection
+# Nothing significant 
+```{r}
+# model data
+full.meth2.cp.mod1 <- lm(copper.zeros$respirationrate~copper.zeros$exp_temp + I(copper.zeros$exp_temp^2) + copper.zeros$Weight_g + copper.zeros$exp_temp:copper.zeros$Weight_g)
+summary(full.meth2.cp.mod1)
+drop1(full.meth2.cp.mod1)
+# interaction term not significant 0.0817 dropped. 
+
+# drop Weight
+temp.med2.cp.mod2 <- lm(copper.zeros$respirationrate~copper.zeros$exp_temp + I(copper.zeros$exp_temp^2) + copper.zeros$Weight_g)
+summary(temp.med2.cp.mod2)
+drop1(temp.med2.cp.mod2)
+# This is the best model
+
+# drop squared
+temp.med2.cp.mod3 <- lm(copper.zeros$respirationrate~copper.zeros$exp_temp + copper.zeros$Weight_g)
+summary(temp.med2.cp.mod3)
+
+# drop linear
+temp.med2.cp.mod4 <- lm(copper.zeros$respirationrate~I(copper.zeros$exp_temp^2))
+summary(temp.med2.cp.mod4)
+
+### nothing is significant
+
+```
+
+\newpage
+
+## Method 3 - Weight Correct Respiration Rate first without zeros
+
+
+```{r}
+
+# Correct respiration rate with individual weight
+copper$corr.resp.rate <- copper$respirationrate/copper$Weight_g
+
+# Plot corrected respiration rate against treatment temperature
+plot(copper$corr.resp.rate~copper$exp_temp, bty = "l", pch = 20,
+     col = "blue", main = "Weight Corrected Respiration Rate vs. 
+     Experimental Temperature - Copper Rockfish", 
+     xlab = "Treatment Temperature (C)", 
+     ylab = "Respiration Rate (ppm 02 min-1 g-1)")
+
+# Fit linear model to data
+mod.3.cp <- lm(copper$corr.resp.rate~copper$exp_temp)
+mean(copper$corr.resp.rate)
+# Plot linear model on graph
+abline(mod.3.cp, col = "blue")
+
+# Use General Additive Model
+ggplot(copper, aes(x=exp_temp, y=corr.resp.rate)) + labs(x = "Treatment Temperature (Celcius)", y = "Respiration Rate (ppm O2 min-1 g-1)") + ggtitle("Respiration Rate - Copper Rockfish") + geom_point() + geom_smooth()
+
+```
+\newpage
+
+## Models - AIC model selection
+# Significance
+```{r}
+# Create full model
+full.med3.cp.mod1 <- lm(copper$corr.resp.rate~copper$exp_temp + I(copper$exp_temp^2) + copper$exp_temp:copper$Weight_g)
+summary(full.med3.cp.mod1)
+drop1(full.med3.cp.mod1)
+# Interaction term is significant
+
+# Just to see others: drop squared
+temp.med3.cp.mod2 <- lm(copper$corr.resp.rate~copper$exp_temp + copper$exp_temp:copper$Weight_g)
+summary(temp.med3.cp.mod2)
+
+# leave squared and drop non squared term
+temp.med3.cp.mod3 <- lm(copper$corr.resp.rate~I(copper$exp_temp^2) + copper$exp_temp:copper$Weight_g)
+summary(temp.med3.cp.mod3)
+# Best model
+
+AICc(temp.med3.cp.mod2)
+AICc(temp.med3.cp.mod3)
+
+```
+\newpage
+
+## Method 4 - Weight Correct Respiration Rate first with zeros
+
+```{r}
+# Correct respiration rate with individual weight
+copper.zeros$corr.resp.rate <- copper.zeros$respirationrate/copper.zeros$Weight_g
+
+# Plot corrected respiration rate against treatment temperature
+
+#method 1 cubic
+plot(copper.zeros$corr.resp.rate~copper.zeros$exp_temp, bty = "l", pch = 18,
+     main = "Respiration Rate - Copper Rockfish", 
+     xlab = expression(paste("Treatment Temperature (",degree,"C)")), 
+     ylab = "Respiration Rate (ppm 02 min-1 g-1)")
+
+# Fit third order polynomial model to data
+mod.4.cp <- lm(copper.zeros$corr.resp.rate~copper.zeros$exp_temp + I(copper.zeros$exp_temp^2) + I(copper.zeros$exp_temp^3))
+
+curve(0.4037 - 0.07819*x + 0.005076*x^2 - 0.0001060*x^3, add = T, col = "red", lwd = 3)
+curve(-0.0446598 + 0.0084399*x + -0.0002663*x^2, add = T, col = "blue", lwd = 3)
+f  <- function(x) (0.4037 - 0.07819*x + 0.005076*x^2 - 0.0001060*x^3)
+optimize(f, c(10.51111, 22.85417), maximum = TRUE)
+points(18.94781, 0.0234746, col = "red", pch = "|", lwd = 6)
+text(13, 0.07, labels = expression(paste("T opt = 18.95",degree,"C")), col = "red")
+f2  <- function(x) (-0.0446598 + 0.0084399*x + -0.0002663*x^2)
+optimize(f2, c(10.51111, 22.85417), maximum = TRUE)
+points(15.8466, 0.02221207, col = "blue", pch = "|", lwd = 6)
+text(13, 0.06, labels = expression(paste("T opt = 15.85",degree,"C")), col = "blue")
+
+summary(mod.4.cp)
+#method 2 - squared
+plot(copper.zeros$corr.resp.rate~copper.zeros$exp_temp, bty = "l", pch = 18,
+     col = "blue", main = "Respiration Rate - Copper Rockfish", 
+     xlab = expression(paste("Treatment Temperature (",degree,"C)")), 
+     ylab = "Respiration Rate (ppm 02 min-1 g-1)")
+
+# Fit second order polynomial to data
+mod.4.meth2.cp <- lm(copper.zeros$corr.resp.rate~copper.zeros$exp_temp + I(copper.zeros$exp_temp^2))
+
+summary(mod.4.meth2.cp)
+curve(-0.0446598 + 0.0084399*x + -0.0002663*x^2, add = T, col = "blue")
+f2  <- function(x) (-0.0446598 + 0.0084399*x + -0.0002663*x^2)
+optimize(f2, c(10.51111, 22.85417), maximum = TRUE)
+points(15.8466, 0.02221207, col = "red", pch = "|")
+text(13, 0.07, labels = expression(paste("T opt = 15.85",degree,"C")), col = "red")
+
+
+# Use General Additive Model
+ggplot(copper.zeros, aes(x=exp_temp, y=corr.resp.rate)) + labs(x = "Treatment Temperature (Celcius)", y = "Correct Respiration Rate (ppm O2 min-1 g-1)") + ggtitle("Weight Corrected Respiration Rate - Copper Rockfish") + geom_point() + geom_smooth()
+
+
+```
+\newpage
+
+### Models - AIC model selection
+# Nothing significant
+```{r}
+# Create full model
+full.med4.cp.mod1 <- lm(copper.zeros$corr.resp.rate~copper.zeros$exp_temp + I(copper.zeros$exp_temp^2) + I(copper.zeros$exp_temp^3) + copper.zeros$exp_temp:copper.zeros$Weight_g)
+summary(full.med4.cp.mod1)
+drop1(full.med4.cp.mod1)
+# Interaction not significant dropped
+
+# drop interaction
+temp.med4.cp.mod2 <- lm(copper.zeros$corr.resp.rate~copper.zeros$exp_temp + I(copper.zeros$exp_temp^2) + I(copper.zeros$exp_temp^3))
+summary(temp.med4.cp.mod2)
+drop1(temp.med4.cp.mod2)
+
+# leave squared and drop non squared term
+temp.med4.cp.mod3 <- lm(copper.zeros$corr.resp.rate~copper.zeros$exp_temp + I(copper.zeros$exp_temp^2))
+summary(temp.med4.cp.mod3)
+
+# drop squared
+temp.med4.cp.mod4 <- lm(copper.zeros$corr.resp.rate~copper.zeros$exp_temp)
+summary(temp.med4.cp.mod4)
+
+### Nothing is significant
+
+```
+\newpage
+
+# Black Rockfish 
+## Method 1 - Calculating the residuals
+# Significant 
+```{r}
+
+# Plot respiration rate vs. weight
+plot(black$respirationrate~black$Weight_g, bty = "l", pch = 20,
+     col = "black", main = "Affect of Weight on Respiration Rate - 
+     Black Rockfish")
+mod.1.blk <- lm(black$respirationrate~black$Weight_g)
+abline(mod.1.blk)
+
+#Histogram of residuals
+hist(rstandard(mod.1.blk))
+
+#qqplot to test for normality in residuals
+qqnorm(rstandard(mod.1.blk))
+qqline(rstandard(mod.1.blk))
+#Residuals of the model are normally distributed 
+
+# log transform data and plot it
+plot(log(black$respirationrate)~log(black$Weight_g), bty = "l", pch = 20, 
+     col = "black", main = "log Transformed Weight data - Black Rockfish", 
+     xlab = "log(Weight)", ylab = "log(Respiration Rate)")
+
+mod.2.blk <- lm(log(black$respirationrate)~log(black$Weight_g))
+abline(mod.2.blk)
+
+#Histogram of residuals
+hist(rstandard(mod.2.blk))
+
+#qqplot to test for normality in residuals
+qqnorm(rstandard(mod.2.blk))
+qqline(rstandard(mod.2.blk))
+#Residuals of the model are normally distributed
+
+# Calculate the residuals
+black$residuals  <- resid(mod.2.blk)
+
+# Plot the residuals vs treatment temperature
+plot(black$residuals~black$exp_temp, bty = "l", pch = 20,
+     col = "black", main = "Affect of Temperature on Respiration Rate - Black Rockfish",
+     ylab = "Residuals", xlab = "Treatment Temperature (C)")
+
+mod.3.blk <- lm(black$residuals~black$exp_temp)
+abline(mod.3.blk)
+
+ggplot(black, aes(x=exp_temp, y=residuals)) + labs(x = "Treatment Temperature (Celcius)", y = "Residuals") + ggtitle("Affect of Temperature on Respiration Rate - Black Rockfish") + geom_point() + geom_smooth()
+
+```
+\newpage
+
+## Models - AIC model selection 
+
+```{r}
+# Create full model
+full.med1.blk.mod1 <- lm(black$respirationrate~black$exp_temp + I(black$exp_temp^2) + black$Weight_g + black$exp_temp:black$Weight_g)
+summary(full.med1.blk.mod1)
+drop1(full.med1.blk.mod1)
+
+# Drop interaction
+temp.med1.blk.mod1 <- lm(black$respirationrate~black$exp_temp + I(black$exp_temp^2) + black$Weight_g)
+summary(temp.med1.blk.mod1)
+
+# drop Linear temp
+temp.med1.blk.mod2 <- lm(black$respirationrate~I(black$exp_temp^2) + black$Weight_g)
+summary(temp.med1.blk.mod2)
+drop1(temp.med1.blk.mod2)
+# This is the best model
+
+# Drop squared
+temp.med1.blk.mod3 <- lm(black$respirationrate~black$exp_temp + black$Weight_g)
+summary(temp.med1.blk.mod3)
+
+AICc(temp.med1.blk.mod2)
+AICc(temp.med1.blk.mod3)
+### YAYYYYYY Significance ..but no zeros I think zeros should be in.. and significance is in the wrong direction squared term is positive in estimate should be negative...
+
+```
+\newpage
+
+## Method 2 - Same analysis but adding in zeros for those that died during the experiment
+# Nothing significant
+```{r}
+zeros.blk  <- read.csv("zeros_blk.csv", header= FALSE)
+colnames(zeros.blk) <- c("Species", "Length_mm", "Weight_g", "Starting_DO_.ppm", "DO_30min_ppm", "Experimental_Treatment_C", "Bucket", "respirationrate", "exp_temp", "residuals", "corr.resp.rate")
+black.zeros <- rbind(black, zeros.blk)
+
+# Plot initial data
+plot(black.zeros$respirationrate~black.zeros$Weight_g, bty = "l", pch = 18, 
+     col = "blue", main = "Affect of Weight on Respiration Rate - Black Rockfish",
+     xlab = "Weight (g)", ylab = "Respiration Rate (ppm O2 min-1)" )
+
+# cannot log transform the data because of zeros in data but may not be necessary due
+# residuals being normally distributed
+
+# created a linear model for non-transformed data
+mod.1.blk <- lm(black.zeros$respirationrate~black.zeros$Weight_g)
+
+#Histogram of residuals
+hist(rstandard(mod.1.blk))
+
+#qqplot to test for normality in residuals
+qqnorm(rstandard(mod.1.blk))
+qqline(rstandard(mod.1.blk))
+#Residuals of the model are normally distributed
+
+# Plot the residuals 
+black.zeros$residuals <- resid(mod.1.blk)
+
+plot(black.zeros$residuals~black.zeros$exp_temp, bty = "l", pch = 18, 
+     col = "blue", main = "Affect of Temperature on Respiration Rate - Black Rockfish",
+     xlab = "Residuals", ylab = "Treatment Temperature (C)" )
+
+abline(lm(black.zeros$residuals~black.zeros$exp_temp), col = "blue")
+
+ggplot(black.zeros, aes(x=exp_temp, y=residuals)) + labs(x = "Treatment Temperature (Celcius)", y = "Residuals") + ggtitle("Affet of Temperature on Respiration Rate - Black Rockfish") + geom_point() + geom_smooth()
+
+```
+\newpage
+
+## Models - AIC model selection
+
+```{r}
+# model data
+full.med2.blk.mod1 <- lm(black.zeros$respirationrate~black.zeros$exp_temp + I(black.zeros$exp_temp^2) + black.zeros$Weight_g + black.zeros$exp_temp:black.zeros$Weight_g)
+summary(full.med2.blk.mod1)
+drop1(full.med2.blk.mod1)
+
+# drop interaction not significant
+temp.med2.blk.mod1 <- lm(black.zeros$respirationrate~black.zeros$exp_temp + I(black.zeros$exp_temp^2) + black.zeros$Weight_g)
+summary(temp.med2.blk.mod1)
+drop1(temp.med2.blk.mod1)
+
+# drop linear temp
+temp.med2.blk.mod2 <- lm(black.zeros$respirationrate~I(black.zeros$exp_temp^2) + black.zeros$Weight_g)
+summary(temp.med2.blk.mod2)
+drop1(temp.med2.blk.mod2)
+# This is the best model
+
+# drop squared temp
+temp.med2.blk.mod3 <- lm(black.zeros$respirationrate~black.zeros$exp_temp + black.zeros$Weight_g)
+summary(temp.med2.blk.mod3)
+
+
+### nothing is significant
+
+```
+\newpage
+
+## Method 3 - Correcting for weight first 
+# Significant interaction term other model does not differ by 2 AIC, but tried 
+# dropping anyway and was highly significant. 
+```{r}
+# Correct respiration rate with individual weight
+black$corr.resp.rate <- black$respirationrate/black$Weight_g
+
+# Plot corrected respiration rate against treatment temperature
+plot(black$corr.resp.rate~black$exp_temp, bty = "l", pch = 20,
+     col = "black", main = "Affect of Temperature on Weight Corrected Respiration Rate", 
+     xlab = "Treatment Temperature (C)", ylab = "Respiration Rate (ppm 02 min-1 g-1)")
+
+# Fit linear model to data
+mod.4.blk <- lm(black$corr.resp.rate~black$exp_temp)
+
+# Plot linear model on graph
+abline(mod.4.blk)
+
+# Use General Additive Model
+ggplot(black, aes(x=exp_temp, y=corr.resp.rate)) + labs(x = "Treatment Temperature (Celcius)", y = "Respiration Rate (ppm O2 min-1 g-1)") + ggtitle("Respiration Rate - Black Rockfish") + geom_point() + geom_smooth()
+
+```
+\newpage
+
+## Models - AIC model selection
+
+```{r}
+require(AICcmodavg)
+# Create full model
+full.med3.blk.mod1 <- lm(black$corr.resp.rate~black$exp_temp + I(black$exp_temp^2) + black$exp_temp:black$Weight_g)
+summary(full.med3.blk.mod1)
+drop1(full.med3.blk.mod1)
+# this is the best model 
+
+# drop squared
+temp.med3.blk.mod2 <- lm(black$corr.resp.rate~black$exp_temp + black$exp_temp:black$Weight_g)
+summary(temp.med3.blk.mod2)
+
+## Significant
+
+# leave squared and drop non squared term
+temp.med3.blk.mod3 <- lm(black$corr.resp.rate~I(black$exp_temp^2) + black$exp_temp:black$Weight_g)
+summary(temp.med3.blk.mod3)
+
+## Significant
+AICc(full.med3.blk.mod1)
+AICc(temp.med3.blk.mod2)
+AICc(temp.med3.blk.mod3)
+# model 3 is the best model!!!
+```
+\newpage
+
+## Method 4 - Correcting for weights with zero data
+# marginally significant 0.073 linear and 0.076 squared
+```{r}
+# Correct respiration rate with individual weight
+black.zeros$corr.resp.rate <- black.zeros$respirationrate/black.zeros$Weight_g
+
+# Plot corrected respiration rate against treatment temperature
+plot(black.zeros$corr.resp.rate~black.zeros$exp_temp, bty = "l", pch = 20, main = "Respiration Rate - Black Rockfish", 
+     xlab = expression(paste("Treatment Temperature (",degree,"C)")), 
+     ylab = "Respiration Rate (ppm 02 min-1 g-1)", ylim = c(0, 0.09))
+
+curve(-0.0408621 + 0.0077983*x - 0.0002319*x^2, add = T, col = "blue", lwd = 3)
+f  <- function(x) (-0.0408621 + 0.0077983*x - 0.0002319*x^2)
+optimize(f, c(10.22846, 22.61731), maximum = TRUE)
+points(16.81393, 0.02469793, col = "blue", pch = "|", lwd = 6)
+text(13, 0.06, labels = expression(paste("T opt = 16.81",degree,"C")), col = "blue")
+
+full.med4.blk.mod1 <- lm(black.zeros$corr.resp.rate~black.zeros$exp_temp + I(black.zeros$exp_temp^2))
+
+summary(full.med4.blk.mod1)
+AICc(full.med4.blk.mod1)
+
+# Fit linear model to data
+mod.4.blk <- lm(black.zeros$corr.resp.rate~black.zeros$exp_temp)
+
+
+
+# Plot linear model on graph
+abline(full.med4.blk.mod1, col = "blue")
+
+# Use General Additive Model
+ggplot(black.zeros, aes(x=exp_temp, y=corr.resp.rate)) + labs(x = "Treatment Temperature (Celcius)", y = "Correct Respiration Rate (ppm O2 min-1 g-1)") + ggtitle("Weight Corrected Respiration Rate - Black Rockfish") + geom_point() + geom_smooth()
+
+
+```
+\newpage
+
+### Models - AIC model selection
+
+```{r}
+# Create full model
+full.med4.blk.mod1 <- lm(black.zeros$corr.resp.rate~black.zeros$exp_temp + I(black.zeros$exp_temp^2))
+summary(full.med4.blk.mod1)
+drop1(full.med4.blk.mod1)
+
+# drop squared
+temp.med4.blk.mod2 <- lm(black.zeros$corr.resp.rate~black.zeros$exp_temp)
+summary(temp.med4.blk.mod2)
+
+# leave squared and drop non squared term
+temp.med4.blk.mod3 <- lm(black.zeros$corr.resp.rate~I(black.zeros$exp_temp^2))
+summary(temp.med4.blk.mod3)
+
+### Nothing is significant - marginally significant 0.073 linear and 0.076 squared
+
+
+```
+
+## Method 5 - dropping all individuals that are under 0.2 g for copper experiment
+# Nothing significant
+```{r}
+
+# drop all fish under 0.2
+correct.length <- which(copper.zeros$Weight_g > 0.2)
+no.small.df <- subset(copper.zeros, copper.zeros$Weight_g > 0.2)
+
+# Plot respiration rate by weight and determine the residuals
+plot(no.small.df$respirationrate~no.small.df$Weight_g, pch = 18, col = "blue", bty = "l")
+
+# Create linear model to find residuals
+linear.no.small <- lm(no.small.df$respirationrate~no.small.df$Weight_g)
+
+# Add linear model to graph
+abline(linear.no.small)
+
+# Find residuals and add to a new column
+no.small.df$residuals <- resid(linear.no.small)
+
+
+# Plot residuals against temperature treatment
+plot(no.small.df$residuals~no.small.df$exp_temp, bty = "l", pch = 18,
+     col = "blue", main = "Affect of Temperature on Weight Corrected Respiration Rate - 
+     Copper Rockfish", xlab = "Treatment Temperature (C)", 
+     ylab = "Respiration Rate (ppm 02 min-1 g-1)")
+
+ggplot(no.small.df, aes(x=exp_temp, y=residuals)) + labs(x = "Treatment Temperature (Celcius)", y = "Respiration Rate (ppm O2 min-1)") + ggtitle("Respiration Rate - Copper Rockfish") + geom_point() + geom_smooth()
+
+
+# Analysis - NOTHING SIGNIFICANT.
+full.med5.cp.mod1 <- lm(no.small.df$residuals~no.small.df$exp_temp + I(no.small.df$exp_temp^2) + no.small.df$Weight_g + no.small.df$exp_temp:no.small.df$Weight_g)
+summary(full.med5.cp.mod1)
+drop1(full.med5.cp.mod1)
+
+#interaction not significant dropped
+med5.cp.mod2 <- lm(no.small.df$residuals~no.small.df$exp_temp + I(no.small.df$exp_temp^2) + no.small.df$Weight_g)
+summary(med5.cp.mod2)
+drop1(med5.cp.mod2)
+
+#drop squared
+med5.cp.mod3 <- lm(no.small.df$respirationrate~no.small.df$exp_temp + no.small.df$Weight_g)
+summary(med5.cp.mod3)
+
+#drop linear keep squared
+med5.cp.mod4 <- lm(no.small.df$respirationrate~I(no.small.df$exp_temp^2) + no.small.df$Weight_g)
+summary(med5.cp.mod4)
+
+```
+
+## Method 6 - dropping all individuals that are under 0.2 g and use corrected respiration rate
+# Very close to being significant 0.053 for linear term and 0.052 for squared term
+
+```{r}
+
+# VERY CLOSE TO BEING SIGNIFICANT 0.053 for linear and 0.052 for squared
+
+# Subset original dataframe for those fish greater than 0.2 g
+no.small.corr.df <- subset(copper.zeros, copper.zeros$Weight_g > 0.2)
+
+# Correct respiration rate with weight
+no.small.corr.df$corr.resp.rate <- no.small.corr.df$respirationrate/no.small.corr.df$Weight_g
+
+# Plot the corrected respiration rate against the experimental temperature
+plot(no.small.corr.df$corr.resp.rate~no.small.corr.df$exp_temp, col = "blue", pch = 18, bty = "l")
+
+ggplot(no.small.corr.df, aes(x=exp_temp, y=corr.resp.rate)) + labs(x = "Treatment Temperature (Celcius)", y = "Respiration Rate (ppm O2 min-1)") + ggtitle("Respiration Rate - Copper Rockfish") + geom_point() + geom_smooth()
+
+# Analysis
+full.med6.cp.mod1 <- lm(no.small.corr.df$corr.resp.rate~no.small.df$exp_temp + I(no.small.df$exp_temp^2))
+summary(full.med6.cp.mod1)
+drop1(full.med6.cp.mod1)
+
+```

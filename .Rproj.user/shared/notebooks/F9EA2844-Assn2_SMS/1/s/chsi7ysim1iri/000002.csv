@@ -1,0 +1,8 @@
+"0","# Multimodel mean for California"
+"0","california.mean <- data.frame(year = california$year, period = california$period, upwelling = rowMeans(california[, 1:22]))"
+"0","# Multimodel mean for Canary"
+"0","canary.mean <- data.frame(year = canary$year, period = canary$period, upwelling = rowMeans(canary[, 1:22]))"
+"0","# Multimodel mean for Humboldt"
+"0","humboldt.mean <- data.frame(year = humboldt$year, period = humboldt$period, upwelling = rowMeans(humboldt[, 1:22]))"
+"0","# Multimodel mean for Benguela"
+"0","benguela.mean <- data.frame(year = benguela$year, period = benguela$period, upwelling = rowMeans(benguela[, 1:22]))"

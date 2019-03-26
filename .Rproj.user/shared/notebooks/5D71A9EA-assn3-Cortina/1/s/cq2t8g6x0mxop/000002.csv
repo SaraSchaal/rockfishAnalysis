@@ -1,0 +1,6 @@
+"0","#upwelling data"
+"0","benguela.upw <- read.csv(""http://faraway.neu.edu/data/assn4_upwelling_benguela.csv"")"
+"0","california.upw <- read.csv(""http://faraway.neu.edu/data/assn4_upwelling_california.csv"")"
+"0","canary.upw <- read.csv(""http://faraway.neu.edu/data/assn4_upwelling_canary.csv"")"
+"0","humboldt.upw <- read.csv(""http://faraway.neu.edu/data/assn4_upwelling_humboldt.csv"")"
+"0","head(benguela.upw)"

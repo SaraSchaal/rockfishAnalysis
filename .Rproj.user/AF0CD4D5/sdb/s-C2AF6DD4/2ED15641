@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "---\ntitle: \"Untitled\"\nauthor: \"Sara Michele Schaal\"\ndate: \"3/12/2019\"\noutput: html_document\n---\n\n```{r}\nbenguela <- read.csv(\"http://faraway.neu.edu/data/assn3_benguela.csv\")\nstr(benguela)\ncalifornia <- read.csv(\"http://faraway.neu.edu/data/assn3_california.csv\")\ncanary <- read.csv(\"http://faraway.neu.edu/data/assn3_canary.csv\")\nhumboldt <- read.csv(\"http://faraway.neu.edu/data/assn3_humboldt.csv\")\n\nperiod.benguela <- ifelse(benguela$year >= 2024,\"After\",\"Before\")\nperiod.california <- ifelse(california$year >= 2024, \"After\",\"Before\")\nperiod.canary <- ifelse(canary$year >= 2024, \"After\",\"Before\")\nperiod.humboldt <- ifelse(humboldt$year >= 2024,\"After\",\"Before\")\n\n```\n\n### Question 2\n\n```{r}\nhead(benguela)\nbenguela.multimodel.mean <- rowMeans(benguela[,1:22], na.rm=FALSE)\nbenguelanew <- data.frame(benguela$year, period.benguela, benguela.multimodel.mean)\nnames(benguelanew) <- c(\"Year\",\"Period\", \"Multimodel Mean\")\n\ncalifornia.multimodel.mean <- rowMeans(california[,1:22], na.rm=FALSE)\ncalifornianew <- data.frame(california$year, period.california, california.multimodel.mean)\nnames(californianew) <- c(\"Year\",\"Period\", \"Multimodel Mean\")\n\ncanary.multimodel.mean <- rowMeans(canary[,1:22], na.rm=FALSE)\ncanarynew <- data.frame(canary$year, period.canary, canary.multimodel.mean)\nnames(canarynew) <- c(\"Year\",\"Period\", \"Multimodel Mean\")\n\nhumboldt.multimodel.mean <- rowMeans(humboldt[,1:22], na.rm=FALSE)\nhumboldtnew <- data.frame(humboldt$year, period.humboldt, humboldt.multimodel.mean)\nnames(humboldtnew) <- c(\"Year\",\"Period\", \"Multimodel Mean\")\n\n```\n\n### Question 3\n\n```{r}\nbefore.benguela <- subset(benguelanew, subset = period.benguela == \"Before\")\nqqnorm(before.benguela$`Multimodel Mean`)\nqqline(before.benguela$`Multimodel Mean`, col= \"red\")\nshapiro.test(before.benguela$`Multimodel Mean`)\nafter.benguela <- subset(benguelanew, subset = period.benguela == \"After\")\nqqnorm(after.benguela$`Multimodel Mean`)\nqqline(after.benguela$`Multimodel Mean`, col= \"red\")\nshapiro.test(after.benguela$`Multimodel Mean`)\n#qqnorm and shapiro wilk give different answers for normality\n\nbefore.california <- subset(californianew, subset = period.california == \"Before\")\nqqnorm(before.california$`Multimodel Mean`)\nqqline(before.california$`Multimodel Mean`, col= \"red\")\nafter.california <- subset(californianew, subset = period.california == \"After\")\nqqnorm(after.california$`Multimodel Mean`)\nqqline(after.california$`Multimodel Mean`, col= \"red\")\n#The after level does not appear normal\n\nbefore.canary <- subset(canarynew, subset = period.canary == \"Before\")\nqqnorm(before.canary$`Multimodel Mean`)\nqqline(before.canary$`Multimodel Mean`, col= \"red\")\nafter.canary <- subset(californianew, subset = period.canary == \"After\")\nqqnorm(after.canary$`Multimodel Mean`)\nqqline(after.canary$`Multimodel Mean`, col= \"red\")\n#The after level does not appear normal\n\nbefore.humboldt <- subset(humboldtnew, subset = period.humboldt == \"Before\")\nqqnorm(before.humboldt$`Multimodel Mean`)\nqqline(before.humboldt$`Multimodel Mean`, col= \"red\")\nafter.humboldt <- subset(californianew, subset = period.humboldt == \"After\")\nqqnorm(after.humboldt$`Multimodel Mean`)\nqqline(after.humboldt$`Multimodel Mean`, col= \"red\")\n#The after level does not appear normal\n\n#Using a non-parametric test instead of a parametric test will result in a lower power, and a higher probability of type 2 errors in hypothesis testing.\n",
+    "created" : 1552406619491.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "3452132169",
+    "id" : "2ED15641",
+    "lastKnownWriteTime" : 8589934591,
+    "last_content_update" : 1552406632892,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "chunk_output_type" : "console",
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 8,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

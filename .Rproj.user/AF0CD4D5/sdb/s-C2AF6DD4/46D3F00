@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "---\ntitle: \"Rockfish Temperature Data\"\nauthor: \"Sara Michele Schaal\"\ndate: \"1/20/2019\"\noutput: html_document\n---\n\n```{r}\n\n# Install packages\n    if(!(\"plyr\" %in% installed.packages())){\n      install.packages(\"plyr\")\n    }\n    if(!(\"dplyr\" %in% installed.packages())){\n      install.packages(\"dplyr\")\n    }\n    if(!(\"reshape2\" %in% installed.packages())){\n      install.packages(\"reshape2\")\n    }\n    if(!(\"AICcmodavg\" %in% installed.packages())){\n      install.packages(\"AICcmodavg\")\n    }\n    if(!(\"ggplot2\" %in% installed.packages())){\n      install.packages(\"ggplot2\")\n    }\n\n    library(plyr)\n    library(dplyr)\n    library(reshape2)\n    library(AICcmodavg)\n    library(ggplot2)\n\n```\n\n```{r}\n## Black Rockfish ##\n\n    # Load Data Frames\n      temp.data <- read.csv(\"data/Temp_Data_Black.csv\")\n      head(temp.data)\n      temp.data2 <- temp.data[, -(14:15)]\n      \n    # average temperatures measured by GAMMA and pH Meter and put values in new column\n      temp.data$meanTemp <- rowMeans(subset(temp.data, select = c(Gamma, pH_Meter)), na.rm = TRUE)\n\n    # Plot\n      df.expBuckets <- NULL\n     df.expBuckets <-  temp.data[temp.data$Bucket_ID != \"BIG 1\" | temp.data$Bucket_ID != \"BIG 2\" | temp.data$Bucket_ID != \"BIG 3\" | temp.data$Bucket_ID != \"COLD\" | temp.data$Bucket_ID != \"HOT\" | temp.data$Bucket_ID != \"SW1\" | temp.data$Bucket_ID != \"SW2\", ]\n      \n      df.holdBuckets <- temp.data[temp.data$Bucket_ID == \"BIG 1\" | temp.data$Bucket_ID == \"BIG 2\" | temp.data$Bucket_ID == \"BIG 3\",]\n      \n      \n      ggplot(df.expBuckets,aes(x=Temperature_Treatment,y=meanTemp,group=Bucket_ID))+geom_boxplot()\n \n    # Turn data frame into tlb_df object so that text wraps so they don't fill screen\n      temp.df <- tbl_df(temp.data2)\n      levels(temp.df$Bucket_ID)\n      \n    # get mean and standard deviation of bucket temps\n      summary.data <- select(temp.df, Bucket_ID, Temperature_Treatment, meanTemp)\n      melted.temp.data <- melt(summary.data, id.vars = c(\"Bucket_ID\", \"Temperature_Treatment\"), \n                              na.rm = TRUE)\n      summary.stats.black <- ddply(melted.temp.data, c(\"Bucket_ID\", \"Temperature_Treatment\"), \n                                  summarise, mean = mean(value), sd = sd(value))\n\n      treatment.buckets.summ.blk <- summary.stats.black[c(1:5, 7, 9, 10:16), ]\n      all.treatment.buckets.blk <- summary.stats.black[c(1:16),]\n      write.csv(all.treatment.buckets.blk, \"data/black_exp_temps.csv\", row.names = FALSE)\n      \n      \n  ## Copper Rockfish ##\n\n    # Load Data\n      temp.data.cp <- read.csv(\"data/Temp_Data_Copper.csv\")\n      head(temp.data.cp)\n\n    # Turn data fram into a tbl_df to wrap text and calculate Mean of Gamma and pH Meter temps\n      temp.df.cp <- tbl_df(temp.data.cp)\n      temp.df.cp$mean <- rowMeans(subset(temp.df.cp, select = c(Gamma, pH_Meter)), \n                                  na.rm = TRUE)\n\n    # Calculate summary statistics\n      summary.data.cp <- select(temp.df.cp, Bucket_ID, Temperature_Treatment, mean)\n      melted.temp.data.cp <- melt(summary.data.cp, id.vars = c(\"Bucket_ID\", \"Temperature_Treatment\"), \n                                  na.rm = TRUE)\n      summary.stats.copper <- ddply(melted.temp.data.cp, c(\"Bucket_ID\",\"Temperature_Treatment\"), \n                                    summarise, mean = mean(value), sd = sd(value))\n  \n    # Separate out just treatment values\n      treatment.buckets.summ.cp <- summary.stats.copper[c(1:6, 9:16), ]\n      all.treatment.buckets.cp <- summary.stats.copper[c(1:16),]\n      write.csv(all.treatment.buckets.cp, \"data/copper_exp_temps.csv\", row.names = FALSE)\n\n```",
+    "created" : 1548019306068.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "4265447106",
+    "id" : "46D3F00",
+    "lastKnownWriteTime" : 1548214111,
+    "last_content_update" : 1548214111589,
+    "path" : "~/Documents/Northeastern/LotterhosLab/Research/Field Work/2015/TPC_Experiment/Analysis/scripts/ExpTempData.Rmd",
+    "project_path" : "scripts/ExpTempData.Rmd",
+    "properties" : {
+        "chunk_output_type" : "console",
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 6,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

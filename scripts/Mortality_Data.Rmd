@@ -1,0 +1,901 @@
+---
+title: "Mortality Data"
+author: "Sara Michele Schaal"
+date: "June 28, 2016"
+output: pdf_document
+---
+
+## Mortality Data Analysis
+
+### Data Loading and Manipulation
+
+```{r}
+
+mort.data <- read.csv("/Users/saraschaal/Documents/Northeastern/LotterhosLab/Research/Field Work/2015/TPC_Experiment/Analysis/data/Mortality.csv")
+mort.data$Treatment_Temperature <- round(mort.data$Treatment_Temperature, digits = 1)
+
+black.mort.data <- subset(mort.data, mort.data$Species == c("Black", "Yellowtail"))
+copper.mort.data <- subset(mort.data, mort.data$Species == c("Copper", "Quillback"))
+
+mort.black3 <- which(mort.data$Species == c("Black", "Yellowtail"))
+mort.copper3 <- which(mort.data$Species == c("Copper", "Quillback"))
+
+mort.black <- which(mort.data$Species == "Black")
+mort.black2 <- tapply(mort.data$Days_Survived[mort.black], mort.data$Treatment_Temperature[mort.black],mean)
+df.mort.black <- data.frame(temp=names(mort.black2), mort.black2)
+
+mort.copper <- which(mort.data$Species == "Copper")
+mort.copper2 <- tapply(mort.data$Days_Survived[mort.copper], mort.data$Treatment_Temperature[mort.copper],mean)
+df.mort.copper <- data.frame(temp=names(mort.copper2), mort.copper2)
+
+mort.quillback <- which(mort.data$Species == "Quillback")
+mort.yellowtail <- which(mort.data$Species == "Yellowtail")
+mort.hybrid <- which(mort.data$Species == "Hybrid")
+mort.bunknown <- which(mort.data$Species == "x")
+mort.cunknown <- which(mort.data$Species == "")
+mort.copquil <- which(mort.data$Species == "Quillback" | mort.data$Species == "Copper")
+mort.blkylt <- which(mort.data$Species == "Black" | mort.data$Species == "Yellowtail")
+```
+
+### Box plots - Days Survived by Temperature
+
+```{r}
+boxplot(mort.data$Days_Survived[mort.copper]~mort.data$Treatment_Temperature[mort.copper], 
+        xlab = "", 
+        ylab = "", ylim = c(1, 14),
+        main = "Copper ", col = "orange")
+boxplot(mort.data$Days_Survived[mort.black]~mort.data$Treatment_Temperature[mort.black], 
+        xlab = expression(paste("Temperature (",degree,"C)")), 
+        ylab = "Days Survived", ylim = c(1, 14), 
+        main = "Black")
+boxplot(mort.data$Days_Survived[mort.yellowtail]~mort.data$Treatment_Temperature[mort.yellowtail],
+        at = c(1,3,4,5,6,9), names = c("10", "15", "18", "19", "20", "22"),
+        xlab = expression(paste("Temperature (",degree,"C)")), 
+        ylab = "Days Survived", ylim = c(1, 14), 
+        main = "Yellowtail", col = "goldenrod")
+boxplot(mort.data$Days_Survived[mort.hybrid]~mort.data$Treatment_Temperature[mort.hybrid], 
+        xlab = expression(paste("Temperature Treatment (",degree,"C)")), 
+        ylab = "Days Survived", ylim = c(1, 14), 
+        main = "Black/Yellowtail Hybrid Mortality")
+boxplot(mort.data$Days_Survived[mort.quillback]~mort.data$Treatment_Temperature[mort.quillback], 
+        xlab = "", 
+        ylab = "", ylim = c(1, 14), col = "brown", 
+        main = "Quillback")
+#boxplot(mort.data$Days_Survived[mort.bunknown]~mort.data$Treatment_Temperature[mort.bunknown], 
+ #       xlab = expression(paste("Temperature Treatment (",degree,"C)")), 
+ #       ylab = "Days Survived", ylim = c(1, 14), col = "black", 
+ #       main = "Black Unknown Rockfish Mortality")
+boxplot(mort.data$Days_Survived[mort.cunknown]~mort.data$Treatment_Temperature[mort.cunknown], 
+        xlab = expression(paste("Temperature Treatment (",degree,"C)")), 
+        ylab = "Days Survived", ylim = c(1, 14), col = "blue", 
+        main = "Copper Unknown Rockfish Mortality")
+
+```
+# Analysis
+## Linear Model
+### Black Rockfish Experiment 
+
+#### Black and yellowtail rockfish together to determine if there is a significant species interaction
+
+```{r}
+
+# Analyzing black and yellowtail together
+mod1.mort.blkAyt <- lm(mort.data$Days_Survived[mort.black3]~mort.data$Treatment_Temperature[mort.black3]*mort.data$Species[mort.black3]+ mort.data$Weight[mort.black3])
+summary(mod1.mort.blkAyt)
+drop1(mod1.mort.blkAyt)
+#Best model is with species interaction ANALYZE SEPARATELY??
+
+mod2.mort.blkAyt <- lm(mort.data$Days_Survived[mort.black3]~mort.data$Treatment_Temperature[mort.black3] + mort.data$Species[mort.black3])
+summary(mod2.mort.blkAyt)
+drop1(mod2.mort.blkAyt)
+
+```
+
+#### Siginificant species interaction analyze separate
+
+#### Black and Yellowtail Analyses Separated
+
+```{r}
+
+mod1.blk.mort <- lm(mort.data$Days_Survived[mort.black]~mort.data$Treatment_Temperature[mort.black]+mort.data$Weight[mort.black])
+summary(mod1.blk.mort)
+drop1(mod1.blk.mort)
+
+mod1.yt.mort <- lm(mort.data$Days_Survived[mort.yellowtail]~mort.data$Treatment_Temperature[mort.yellowtail]+mort.data$Weight[mort.yellowtail])
+summary(mod1.yt.mort)
+drop1(mod1.yt.mort)
+
+```
+
+### Copper Rockfish Experiment
+
+#### Copper and Quillback Rockfish together to determine if there is a significant species interaction
+
+```{r}
+mod1.mort.cpAqb <- lm(mort.data$Days_Survived[mort.copper3]~mort.data$Treatment_Temperature[mort.copper3]*mort.data$Species[mort.copper3])
+summary(mod1.mort.cpAqb)
+drop1(mod1.mort.cpAqb)
+# Significant Species interaction ANALYZE SEPARATELY
+
+mod2.mort.cpAqb <- lm(mort.data$Days_Survived[mort.copper3]~mort.data$Treatment_Temperature[mort.copper3] + mort.data$Species[mort.copper3])
+summary(mod2.mort.cpAqb)
+
+```
+
+#### Copper and Quillback Analyzed Separately
+
+```{r}
+mod1.cp.mort <- lm(mort.data$Days_Survived[mort.copper]~mort.data$Treatment_Temperature[mort.copper]+mort.data$Weight[mort.copper])
+summary(mod1.cp.mort)
+drop1(mod1.cp.mort)
+
+
+mod1.qb.mort <- lm(mort.data$Days_Survived[mort.quillback]~mort.data$Treatment_Temperature[mort.quillback]+mort.data$Weight[mort.quillback])
+summary(mod1.qb.mort)
+drop1(mod1.qb.mort)
+
+b <- 14
+m <- 0.2 # (optimize to find m)
+x <- 1:15
+
+
+z = -m*x^2 + b
+y = b-exp(m*x)
+plot(y~x)
+plot(z~x)
+
+# look up survival models. 
+# test the model with all the species in one model.
+# check the climate models for vancouver area.
+# plot out size and mortality 
+# 3d plot of temp/survival/size
+# tradeoff between growth and mortality? 
+# rate with the ones that died 
+# time scale of response if you just look at the growth change
+
+
+```
+
+
+### Plot as Two Experiments - Scatter with Jitter
+
+```{r}
+# Subset data for plotting
+  copper.mort <- subset(mort.data, mort.data$Species == "Copper")
+  black.mort <- subset(mort.data, mort.data$Species == "Black") 
+  quillback.mort <- subset(mort.data, mort.data$Species == "Quillback")
+  yellowtail.mort <- subset(mort.data, mort.data$Species == "Yellowtail")
+
+# copper
+  plot(copper.mort$Days_Survived ~ jitter(copper.mort$Treatment_Temperature,1), col = "orange", 
+       pch = 19, bty = "l", ylim = c(0,14), xlab = "Temperature", ylab = "Days Survived",
+       main = "Copper and Quillback Survival")
+  points(quillback.mort$Days_Survived ~ jitter(quillback.mort$Treatment_Temperature, 1), col = "brown",
+         pch = 19)
+  legend("bottomright", legend = c("Copper", "Quillback"), pch = c(19,19), col = c("orange", "brown"))
+
+# black 
+  plot(black.mort$Days_Survived ~ jitter(black.mort$Treatment_Temperature, 1), 
+       col = "black", pch = 19, bty = "l", ylim = c(0,14), xlab = "Temperature", 
+       ylab = "Days Survived", main = "Black and Yellowtail Survival")
+  points(yellowtail.mort$Days_Survived ~ jitter(yellowtail.mort$Treatment_Temperature, 1), 
+         col = "goldenrod", pch = 19)
+  legend("bottomright", legend = c("Black", "Yellowtail"), pch = c(19,19), col = c("black", "goldenrod"))
+```
+
+### Survival Proportions
+
+```{r}
+
+  # Calculate Survival Proportions
+    surv.prop.cp <- aggregate(copper.mort$Status, 
+                              list(copper.mort$Treatment_Temperature), mean)
+    surv.count.cp <- aggregate(copper.mort$Status, 
+                                     list(copper.mort$Treatment_Temperature), length)
+    surv.prop.cp <- cbind(surv.prop.cp, surv.count.cp[,2])
+    
+    surv.prop.blk <- aggregate(black.mort$Status, 
+                               list(black.mort$Treatment_Temperature), mean)
+    surv.count.blk <- aggregate(black.mort$Status, 
+                                     list(black.mort$Treatment_Temperature), length)
+    surv.prop.blk <- cbind(surv.prop.blk, surv.count.blk[,2])
+    
+    surv.prop.quill <- aggregate(quillback.mort$Status, 
+                                 list(quillback.mort$Treatment_Temperature), mean)
+    surv.count.quill <- aggregate(quillback.mort$Status, 
+                                     list(quillback.mort$Treatment_Temperature), length)
+    surv.prop.quill <- cbind(surv.prop.quill, surv.count.quill[,2])
+    
+    surv.prop.ytl <- aggregate(yellowtail.mort$Status, 
+                               list(yellowtail.mort$Treatment_Temperature), mean)
+    surv.count.ytl <- aggregate(yellowtail.mort$Status, 
+                                     list(yellowtail.mort$Treatment_Temperature), length)
+    surv.prop.ytl <- cbind(surv.prop.ytl, surv.count.ytl[,2])
+    
+  # Rename headers
+    colnames(surv.prop.cp) <- c("Temperature", "Surv.Prop", "Weight")
+    colnames(surv.prop.blk) <- c("Temperature", "Surv.Prop", "Weight")
+    colnames(surv.prop.quill) <- c("Temperature", "Surv.Prop", "Weight")
+    colnames(surv.prop.ytl) <- c("Temperature", "Surv.Prop", "Weight")
+    
+  # Logistic Regression of Proportion Data - Same as lived/died data?
+    log.mod.prop.cp <- glm(Surv.Prop~Temperature, weights = Weight,
+                           family = binomial(link = 'logit'), data = surv.prop.cp)
+    log.mod.prop.quill <- glm(Surv.Prop~Temperature, weights = Weight, 
+                              family = binomial(link = 'logit'), data = surv.prop.quill)
+    log.mod.prop.blk <- glm(Surv.Prop~Temperature, weights = Weight, 
+                            family = binomial(link = 'logit'), data = surv.prop.blk)
+    log.mod.prop.ytl <-  glm(Surv.Prop~Temperature, weights = Weight, 
+                             family = binomial(link = 'logit'), data = surv.prop.ytl)
+
+  # Summary of Models
+    summary(log.mod.prop.cp)
+    summary(log.mod.prop.quill)
+    summary(log.mod.prop.blk)
+    summary(log.mod.prop.ytl)
+    
+  # Plot Survival Propotions - Separate Figures
+    dev.off()
+    par(mfrow = c(2,2))
+    plot(surv.prop.cp$Surv.Prop~surv.prop.cp$Temperature, pch = 19, bty = "l", col = "orange",
+         xlab = "Temperature", ylab = "Survival Proportion", 
+         main = "Copper Rockfish")
+    curve(predict(surv.prop.cp, data.frame(Temperature = x), type = "response"), add = TRUE,
+          col = "black", lwd = 1)
+    plot(surv.prop.quill$Surv.Prop~surv.prop.quill$Temperature, pch = 19, bty = "l", col = "brown",
+         xlab = "Temperature", ylab = "Survival Proportion", 
+         main = "Quillback Rockfish")
+    curve(predict(surv.prop.quill, data.frame(Temperature = x), type = "response"), add = TRUE,
+          col = "black", lwd = 1)
+    plot(surv.prop.blk$Surv.Prop~surv.prop.blk$Temperature, pch = 19, bty = "l", col = "black",
+         xlab = "Temperature", ylab = "Survival Proportion", 
+         main = "Black Rockfish")
+    plot(surv.prop.ytl$Surv.Prop~surv.prop.ytl$Temperature, pch = 19, bty = "l", col = "goldenrod",
+         xlab = "Temperature", ylab = "Survival Proportion", 
+         main = "Yellowtail Rockfish")
+
+```
+
+### Simple Plot of Survived/Died with Logistic Regression Analysis
+#### lose resolution for days survived
+
+```{r}
+  # 
+all.mort <- rbind(copper.mort, quillback.mort, black.mort, yellowtail.mort)
+str(all.mort)
+all.mort$Species <- as.factor(as.character(all.mort$Species))
+log.mod.all <- glm(Status~Treatment_Temperature+Species+Treatment_Temperature*Species, family = binomial(link = 'logit'), 
+                      data = all.mort)
+summary(log.mod.all)
+tail(all.mort)
+# perfect or quasi perfect separation
+
+  # Logistic Regression
+    log.mod.cp <- glm(Status~Treatment_Temperature, family = binomial(link = 'logit'), 
+                      data = copper.mort)
+    log.mod.quill <- glm(Status~Treatment_Temperature, family = binomial(link = 'logit'), 
+                         data = quillback.mort)
+    log.mod.blk <- glm(Status~Treatment_Temperature, family = binomial(link = 'logit'), 
+                        data = black.mort)
+    log.mod.ytl <-  glm(Status~Treatment_Temperature, family = binomial(link = 'logit'), 
+                        data = yellowtail.mort)
+    
+# Summary of Logistic Regressions
+    summary(log.mod.cp)
+    summary(log.mod.quill)
+    summary(log.mod.blk)
+    summary(log.mod.ytl)
+
+  # Plot Lived/Died and Analyze
+    par(mfrow = c(2,2))
+    
+  # Copper
+    plot(copper.mort$Status~copper.mort$Treatment_Temperature, col = "orange", 
+         pch = 19, bty = "l", xlab = "Temperature Treatment", ylab = "Lived/Died", 
+         main = "Copper Rockfish")
+    
+    cop.pred <- predict(log.mod.cp, data.frame(Treatment_Temperature = 10:23), se.fit = TRUE)
+    #curve(cop.pred$fit, type = "response", add = TRUE, col = "black", lwd = 1)
+    points(y=exp(cop.pred$fit)/(1+exp(cop.pred$fit)), x = 10:23, type = "l")
+    points(y = exp(cop.pred$fit+1.96*cop.pred$se.fit)/(1+exp(cop.pred$fit+1.96*cop.pred$se.fit)), 
+           x = 10:23, type = "l", col = "lightgrey")
+    points(y = exp(cop.pred$fit-1.96*cop.pred$se.fit)/(1+exp(cop.pred$fit-1.96*cop.pred$se.fit)), 
+           x = 10:23, type = "l", col = "lightgrey")
+    # Add Effect Size and Signifiance to Graph 
+    text(13, 0.4, labels = "-0.48 +/- 0.2 *")
+    
+  # Quillback
+    plot(quillback.mort$Status~quillback.mort$Treatment_Temperature, col = "brown", 
+         pch = 19, bty = "l", xlab = "Temperature Treatment", ylab = "Lived/Died", 
+         main = "Quillback Rockfish")
+    curve(predict(log.mod.quill, data.frame(Treatment_Temperature = x), type = "response"), 
+           add = TRUE, col = "black", lwd = 1)
+    # Add Effect Size and Signifiance to Graph 
+    text(20, 0.4, labels = "-0.22 +/- 0.13 .")
+      
+  # Black
+    plot(black.mort$Status~black.mort$Treatment_Temperature, col = "black", 
+         pch = 19, bty = "l", xlab = "Temperature Treatment", ylab = "Lived/Died", 
+         main = "Black Rockfish")
+    curve(predict(log.mod.blk, data.frame(Treatment_Temperature = x), type = "response"), 
+           add = TRUE, col = "black", lwd = 1)
+    # Add Effect Size and Signifiance to Graph 
+    text(13, 0.4, labels = "-1.64 +/- 0.90 .")
+    
+    # Yellowtail
+    plot(yellowtail.mort$Status~yellowtail.mort$Treatment_Temperature, col = "goldenrod", 
+         pch = 19, bty = "l", xlab = "Temperature Treatment", ylab = "Lived/Died", 
+         main = "Yellowtail Rockfish")
+    curve(predict(log.mod.ytl, data.frame(Treatment_Temperature = x), type = "response"), 
+           add = TRUE, col = "black", lwd = 1)
+
+```
+
+## Proportion of total time survived across two weeks
+
+```{r}
+
+# calculate days dead 
+  all.mort$PropDaysDead <- 14-all.mort$Days_Survived
+  log.mod.all.prop2 <- glm(cbind(Days_Survived, PropDaysDead)~Treatment_Temperature*Species, 
+                            family = binomial(link = 'logit'), data = all.mort)
+
+  log.mod.all.prop <- glm(cbind(Days_Survived, PropDaysDead)~Treatment_Temperature+Species, 
+                            family = binomial(link = 'logit'), data = all.mort)
+  summary(log.mod.all.prop2)
+  summary(aov(log.mod.all.prop))
+  
+        
+```  
+
+### Plot as four panel plot
+
+```{r}
+  par(mfrow = c(2,2))
+  par(oma = c(4, 4, 0, 0))
+  par(mar = c(2, 2, 1, 1))
+  
+## Black Rockfish ##
+  # Logistic Regression Model # 
+  log.mod.black.prop <- glm(cbind(all.mort$Days_Survived[all.mort$Species=="Black"],
+                                   all.mort$PropDaysDead[all.mort$Species=="Black"])
+                              ~Treatment_Temperature, family = binomial(link = 'logit'), 
+                              data = all.mort[all.mort$Species=="Black",])
+  summary(log.mod.black.prop)
+  
+  
+  # Plot 
+  plot(all.mort$PropDaysSurv[all.mort$Species=="Black"]~Treatment_Temperature, 
+       data = all.mort[all.mort$Species=="Black",], pch = 19, col = "black",
+       xlab = "", ylab = "", bty = "l", xlim = c(10,23), ylim = c(0,1), xaxt = "n")
+  
+  # Create Prediction for Fitting Data and Standard Error
+  blk.prop.daysurv.pred <- predict(log.mod.black.prop, 
+                                   data.frame(Treatment_Temperature = 10:23), 
+                                   se.fit = TRUE)
+  points(y=exp(blk.prop.daysurv.pred$fit)/(1+exp(blk.prop.daysurv.pred$fit)), x = 10:23, type = "l")
+  points(y = exp(blk.prop.daysurv.pred$fit+1.96*blk.prop.daysurv.pred$se.fit)/
+           (1+exp(blk.prop.daysurv.pred$fit+1.96*blk.prop.daysurv.pred$se.fit)), 
+           x = 10:23, type = "l", col = "darkgrey")
+  points(y = exp(blk.prop.daysurv.pred$fit-1.96*blk.prop.daysurv.pred$se.fit)/
+             (1+exp(blk.prop.daysurv.pred$fit-1.96*blk.prop.daysurv.pred$se.fit)), 
+           x = 10:23, type = "l", col = "darkgrey")
+  text(13, 0.1, label = "-1.18 +/- 0.3***")
+  
+## Copper Rockfish ##  
+  # Logistic Regression Model
+  log.mod.copper.prop <- glm(cbind(all.mort$Days_Survived[all.mort$Species=="Copper"],
+                                   all.mort$PropDaysDead[all.mort$Species=="Copper"])
+                              ~Treatment_Temperature, family = binomial(link = 'logit'), 
+                              data = all.mort[all.mort$Species=="Copper",])
+  summary(log.mod.copper.prop)
+
+# Plot 
+  plot(all.mort$PropDaysSurv[all.mort$Species=="Copper"]~Treatment_Temperature, 
+       data = all.mort[all.mort$Species=="Copper",], pch = 19, col = "orange",
+       xlab = "", ylab = "", bty = "l", yaxt = "n", xaxt = "n", ylim = c(0,1), xlim = c(10,23))
+
+# Create Prediction for Fitting Data and Standard Error
+  cop.prop.daysurv.pred <- predict(log.mod.copper.prop, 
+                                   data.frame(Treatment_Temperature = 10:23), 
+                                   se.fit = TRUE)
+  points(y=exp(cop.prop.daysurv.pred$fit)/(1+exp(cop.prop.daysurv.pred$fit)), x = 10:23)
+  points(y = exp(cop.prop.daysurv.pred$fit+1.96*cop.prop.daysurv.pred$se.fit)/
+           (1+exp(cop.prop.daysurv.pred$fit+1.96*cop.prop.daysurv.pred$se.fit)), 
+           x = 10:23, type = "l", col = "lightgrey")
+  points(y = exp(cop.prop.daysurv.pred$fit-1.96*cop.prop.daysurv.pred$se.fit)/
+             (1+exp(cop.prop.daysurv.pred$fit-1.96*cop.prop.daysurv.pred$se.fit)), 
+           x = 10:23, type = "l", col = "lightgrey")
+  text(13, 0.1, label = "-0.27 +/- 0.06***")
+  
+## Yellowtail Rockfish ##  
+  # Logistic Regression Model
+  log.mod.ytl.prop <- glm(cbind(all.mort$Days_Survived[all.mort$Species=="Yellowtail"],
+                                   all.mort$PropDaysDead[all.mort$Species=="Yellowtail"])
+                              ~Treatment_Temperature, family = binomial(link = 'logit'), 
+                              data = all.mort[all.mort$Species=="Yellowtail",])
+  summary(log.mod.ytl.prop)
+
+# Plot 
+  plot(all.mort$PropDaysSurv[all.mort$Species=="Yellowtail"]~Treatment_Temperature, 
+       data = all.mort[all.mort$Species=="Yellowtail",], pch = 19, col = "goldenrod",
+       xlab = "", ylab = "", bty = "l", ylim = c(0,1), xlim = c(10,23))
+
+# Create Prediction for Fitting Data and Standard Error
+  ytl.prop.daysurv.pred <- predict(log.mod.ytl.prop, 
+                                   data.frame(Treatment_Temperature = 10:23), 
+                                   se.fit = TRUE)
+  text(13, 0.1, label = "ns")
+  
+  ## sample size too low to calculate this
+  #points(y=exp(ytl.prop.daysurv.pred$fit)/(1+exp(ytl.prop.daysurv.pred$fit)), x = 10:23, type = "l")
+  #points(y = exp(ytl.prop.daysurv.pred$fit+1.96*ytl.prop.daysurv.pred$se.fit)/
+           #(1+exp(ytl.prop.daysurv.pred$fit+1.96*ytl.prop.daysurv.pred$se.fit)), 
+           #x = 10:23, type = "l", col = "lightgrey")
+  #points(y = exp(ytl.prop.daysurv.pred$fit-1.96*ytl.prop.daysurv.pred$se.fit)/
+             #(1+exp(ytl.prop.daysurv.pred$fit-1.96*ytl.prop.daysurv.pred$se.fit)), 
+           #x = 10:23, type = "l", col = "lightgrey")
+  
+## Quillback Rockfish ##  
+  # Logistic Regression Model  
+  log.mod.quill.prop <- glm(cbind(all.mort$Days_Survived[all.mort$Species=="Quillback"],
+                                  all.mort$PropDaysDead[all.mort$Species=="Quillback"])
+                              ~Treatment_Temperature, family = binomial(link = 'logit'), 
+                              data = all.mort[all.mort$Species=="Quillback",])
+  summary(log.mod.quill.prop)
+
+  # Plot
+  plot(all.mort$PropDaysSurv[all.mort$Species=="Quillback"]~Treatment_Temperature, 
+       data = all.mort[all.mort$Species=="Quillback",], pch = 19, col = "brown",
+       xlab = "Temperature", ylab = "Proportion of Days Survived", bty = "l",
+       yaxt = "n", ylim = c(0,1), xlim = c(10,23))
+  
+  # Create Prediction for Fitting Data and Standard Error
+  quill.prop.daysurv.pred <- predict(log.mod.quill.prop, 
+                                   data.frame(Treatment_Temperature = 10:23), 
+                                   se.fit = TRUE)
+  points(y=exp(quill.prop.daysurv.pred$fit)/(1+exp(quill.prop.daysurv.pred$fit)), x = 10:23, type = "l")
+  points(y = exp(quill.prop.daysurv.pred$fit+1.96*quill.prop.daysurv.pred$se.fit)/
+           (1+exp(quill.prop.daysurv.pred$fit+1.96*quill.prop.daysurv.pred$se.fit)), 
+           x = 10:23, type = "l", col = "lightgrey")
+  points(y = exp(quill.prop.daysurv.pred$fit-1.96*quill.prop.daysurv.pred$se.fit)/
+             (1+exp(quill.prop.daysurv.pred$fit-1.96*quill.prop.daysurv.pred$se.fit)), 
+           x = 10:23, type = "l", col = "lightgrey")
+  text(13, 0.1, label = "-0.18 +/- 0.04***")
+  
+# Add Axes Titles
+  mtext("Temperature", side = 1, outer = TRUE, cex = 1, line = 2.2)
+  mtext("Proportion of Days Survived", side = 2, outer = TRUE, cex = 1, line = 2.2)
+
+```
+ 
+### Plot with Black and Yellowtail together on same plot
+
+```{r}
+  dev.off()
+  par(mfrow = c(2,2))
+  par(oma = c(4, 4, 0, 0))
+  par(mar = c(2, 2, 1, 1))
+  
+## Copper Rockfish ##
+  plot(all.mort$PropDaysSurv[all.mort$Species=="Copper"]~Treatment_Temperature, 
+       data = all.mort[all.mort$Species=="Copper",], pch = 19, col = "orange",
+       xlab = "", ylab = "", bty = "l", xaxt = "n", ylim = c(0,1), xlim = c(10,23))
+
+# Create Prediction for Fitting Data and Standard Error
+  cop.prop.daysurv.pred <- predict(log.mod.copper.prop, 
+                                   data.frame(Treatment_Temperature = 10:23), 
+                                   se.fit = TRUE)
+  points(y=exp(cop.prop.daysurv.pred$fit)/(1+exp(cop.prop.daysurv.pred$fit)), x = 10:23,
+         type = "l")
+  points(y = exp(cop.prop.daysurv.pred$fit+1.96*cop.prop.daysurv.pred$se.fit)/
+           (1+exp(cop.prop.daysurv.pred$fit+1.96*cop.prop.daysurv.pred$se.fit)), 
+           x = 10:23, type = "l", col = "lightgrey")
+  points(y = exp(cop.prop.daysurv.pred$fit-1.96*cop.prop.daysurv.pred$se.fit)/
+             (1+exp(cop.prop.daysurv.pred$fit-1.96*cop.prop.daysurv.pred$se.fit)), 
+           x = 10:23, type = "l", col = "lightgrey")
+  text(14, 0.1, label = "slope = -0.27 +/- 0.06")
+  text(14, 0.03, label = "p < 0.001***")
+  legend(19.5, 0.15, legend = "Copper", pch = 19, col = "orange", cex = 0.8)
+
+## Black and Yellowtail ##  
+ # Logistic Regression Model # 
+  log.mod.blkyt.prop <- glm(cbind(all.mort$Days_Survived[all.mort$Species=="Black" 
+                                                         | all.mort$Species=="Yellowtail"],
+                                   all.mort$PropDaysDead[all.mort$Species=="Black" 
+                                                         | all.mort$Species=="Yellowtail"])
+                              ~Treatment_Temperature, family = binomial(link = 'logit'), 
+                              data = all.mort[all.mort$Species=="Black" 
+                                              | all.mort$Species=="Yellowtail",])
+  summary(log.mod.blkyt.prop)
+
+ # Plot
+  plot(all.mort$PropDaysSurv[all.mort$Species=="Black"]~Treatment_Temperature, 
+       data = all.mort[all.mort$Species=="Black",], pch = 19, col = "black",
+       xlab = "", ylab = "", bty = "l", yaxt = "n", xlim = c(10,23), ylim = c(0,1))
+  points(all.mort$PropDaysSurv[all.mort$Species=="Yellowtail"]~Treatment_Temperature, 
+       data = all.mort[all.mort$Species=="Yellowtail",], pch = 21, 
+       bg = "goldenrod", col = "black")
+  
+ # Create Prediction for Fitting Data and Standard Error
+  blkyt.prop.daysurv.pred <- predict(log.mod.blkyt.prop, 
+                                   data.frame(Treatment_Temperature = 10:23), 
+                                   se.fit = TRUE)
+  points(y=exp(blkyt.prop.daysurv.pred$fit)/(1+exp(blkyt.prop.daysurv.pred$fit)), 
+         x = 10:23, type = "l")
+  points(y = exp(blkyt.prop.daysurv.pred$fit+1.96*blkyt.prop.daysurv.pred$se.fit)/
+           (1+exp(blkyt.prop.daysurv.pred$fit+1.96*blkyt.prop.daysurv.pred$se.fit)), 
+           x = 10:23, type = "l", col = "darkgrey")
+  points(y = exp(blkyt.prop.daysurv.pred$fit-1.96*blkyt.prop.daysurv.pred$se.fit)/
+             (1+exp(blkyt.prop.daysurv.pred$fit-1.96*blkyt.prop.daysurv.pred$se.fit)), 
+           x = 10:23, type = "l", col = "darkgrey")
+  text(14, 0.1, label = "slope = -1.22 +/- 0.29")
+  text(14, 0.03, label = "p < 0.001***")
+  legend(19.5, 0.2, legend = c("Black", "Yellowtail"), pch = c(19, 21), 
+         pt.bg = c("black", "goldenrod"), col = c("black", "black"), 
+         cex = 0.8)
+  
+## Quillback Rockfish ##
+  plot(all.mort$PropDaysSurv[all.mort$Species=="Quillback"]~Treatment_Temperature, 
+       data = all.mort[all.mort$Species=="Quillback",], pch = 19, col = "brown",
+       xlab = "Temperature", ylab = "Proportion of Days Survived", bty = "l", ylim = c(0,1), xlim = c(10,23))
+  
+  # Create Prediction for Fitting Data and Standard Error
+  quill.prop.daysurv.pred <- predict(log.mod.quill.prop, 
+                                   data.frame(Treatment_Temperature = 10:23), 
+                                   se.fit = TRUE)
+  points(y=exp(quill.prop.daysurv.pred$fit)/(1+exp(quill.prop.daysurv.pred$fit)), x = 10:23, type = "l")
+  points(y = exp(quill.prop.daysurv.pred$fit+1.96*quill.prop.daysurv.pred$se.fit)/
+           (1+exp(quill.prop.daysurv.pred$fit+1.96*quill.prop.daysurv.pred$se.fit)), 
+           x = 10:23, type = "l", col = "lightgrey")
+  points(y = exp(quill.prop.daysurv.pred$fit-1.96*quill.prop.daysurv.pred$se.fit)/
+             (1+exp(quill.prop.daysurv.pred$fit-1.96*quill.prop.daysurv.pred$se.fit)), 
+           x = 10:23, type = "l", col = "lightgrey")
+  text(14, 0.1, label = "slope = -0.18 +/- 0.04")
+  text(14, 0.03, label = "p < 0.001***")
+  legend(19.5, 0.15, legend = "Quillback", pch = 19, col = "brown", cex = 0.8)
+
+  mtext("Temperature", side = 1, outer = TRUE, cex = 1, line = 2.2)
+  mtext("Proportion of Days Survived", side = 2, outer = TRUE, cex = 1, line = 2.2)
+```
+ 
+```{r}
+# confidence intervals bar plot
+# Black rockfish
+blk.fit <- as.data.frame(exp(blk.prop.daysurv.pred$fit)/(1+exp(blk.prop.daysurv.pred$fit)))
+blk.up.CI <- as.data.frame(exp(blk.prop.daysurv.pred$fit+1.96*blk.prop.daysurv.pred$se.fit)/
+           (1+exp(blk.prop.daysurv.pred$fit+1.96*blk.prop.daysurv.pred$se.fit)))
+blk.low.CI <- as.data.frame(exp(blk.prop.daysurv.pred$fit-1.96*blk.prop.daysurv.pred$se.fit)/
+             (1+exp(blk.prop.daysurv.pred$fit-1.96*blk.prop.daysurv.pred$se.fit)))
+blk.logistic.data <- cbind(blk.fit, blk.up.CI, blk.low.CI)
+colnames(blk.logistic.data) <- c("blk.log.fit", "blk.up.CI", "blk.low.CI")
+
+# Copper rockfish
+cp.fit <- as.data.frame(exp(cop.prop.daysurv.pred$fit)/(1+exp(cop.prop.daysurv.pred$fit)))
+cp.up.CI <- as.data.frame(exp(cop.prop.daysurv.pred$fit+1.96*cop.prop.daysurv.pred$se.fit)/
+           (1+exp(cop.prop.daysurv.pred$fit+1.96*cop.prop.daysurv.pred$se.fit))) 
+cp.low.CI <- as.data.frame(exp(cop.prop.daysurv.pred$fit-1.96*cop.prop.daysurv.pred$se.fit)/
+             (1+exp(cop.prop.daysurv.pred$fit-1.96*cop.prop.daysurv.pred$se.fit)))
+cp.logistic.data <- cbind(cp.fit, cp.up.CI, cp.low.CI)
+colnames(cp.logistic.data) <- c("cp.log.fit", "cp.up.CI", "cp.low.CI")
+
+# Quillback rockfish
+qb.fit <- as.data.frame(exp(quill.prop.daysurv.pred$fit)/(1+exp(quill.prop.daysurv.pred$fit)))
+qb.up.CI <- as.data.frame(exp(quill.prop.daysurv.pred$fit+1.96*quill.prop.daysurv.pred$se.fit)/
+           (1+exp(quill.prop.daysurv.pred$fit+1.96*quill.prop.daysurv.pred$se.fit)))
+qb.low.CI <- as.data.frame(exp(quill.prop.daysurv.pred$fit-1.96*quill.prop.daysurv.pred$se.fit)/
+             (1+exp(quill.prop.daysurv.pred$fit-1.96*quill.prop.daysurv.pred$se.fit)))
+qb.logistic.data <- cbind(qb.fit, qb.up.CI, qb.low.CI)
+colnames(qb.logistic.data) <- c("qb.log.fit", "qb.up.CI", "qb.low.CI")
+
+
+# confidence intervals bar plot
+# Black & Yellowtail rockfish
+blkyt.fit <- as.data.frame(exp(blkyt.prop.daysurv.pred$fit)/(1+exp(blkyt.prop.daysurv.pred$fit)))
+blkyt.up.CI <- as.data.frame(exp(blkyt.prop.daysurv.pred$fit+1.96*blkyt.prop.daysurv.pred$se.fit)/
+           (1+exp(blkyt.prop.daysurv.pred$fit+1.96*blkyt.prop.daysurv.pred$se.fit)))
+blkyt.low.CI <- as.data.frame(exp(blkyt.prop.daysurv.pred$fit-1.96*blkyt.prop.daysurv.pred$se.fit)/
+             (1+exp(blkyt.prop.daysurv.pred$fit-1.96*blkyt.prop.daysurv.pred$se.fit)))
+blkyt.logistic.data <- cbind(blkyt.fit, blkyt.up.CI, blkyt.low.CI)
+colnames(blkyt.logistic.data) <- c("blkyt.log.fit", "blkyt.up.CI", "blkyt.low.CI")
+logistic.CI.data <- cbind(blk.logistic.data, cp.logistic.data, 
+                          qb.logistic.data, blkyt.logistic.data)
+rownames(logistic.CI.data) <- c(10:23)
+
+# Create Data Frame for Bar Graph
+  #bkfit <- cbind(logistic.CI.data$blk.log.fit[c(5,11,13)])
+  cpfit <- cbind(logistic.CI.data$cp.log.fit[c(5,11,13)])
+  qbfit <- cbind(logistic.CI.data$qb.log.fit[c(5,11,13)])
+  blkytfit <- cbind(logistic.CI.data$blkyt.log.fit[c(5,11,13)])
+  log.fits <- t(cbind(blkytfit, cpfit, qbfit))
+  
+# Create Data Frame for upper CI
+  #blkup <- cbind(logistic.CI.data$blk.up.CI[c(5,11,13)])
+  cpup <- cbind(logistic.CI.data$cp.up.CI[c(5,11,13)])
+  qbup <- cbind(logistic.CI.data$qb.up.CI[c(5,11,13)])
+  blkytup <- cbind(logistic.CI.data$blkyt.up.CI[c(5,11,13)])
+  up.CI <- t(cbind(blkytup, cpup, qbup))
+
+# Create Data Frame for lower CI  
+  #blklow <- cbind(logistic.CI.data$blk.low.CI[c(5,11,13)])
+  cplow <- cbind(logistic.CI.data$cp.low.CI[c(5,11,13)])
+  qblow <- cbind(logistic.CI.data$qb.low.CI[c(5,11,13)])
+  blkytlow <- cbind(logistic.CI.data$blkyt.low.CI[c(5,11,13)])
+  low.CI <- t(cbind(blkytlow, cplow, qblow))
+  
+# Create barplot of 
+  par(lwd = 2)
+bp <- barplot(log.fits, beside = T, names = c("14°C", "20°C", "22°C"), 
+              col = c("black","orange", "brown"), border = c("goldenrod", NA, NA),
+              ylim = c(0,1.12), ylab = "Proportion of Days Survived")
+par(lwd = 1)
+legend("topright", legend = c("Black & Yellowtail", "Copper", "Quillback"), fill = c("black", "orange", "brown"), border = c("goldenrod", NA, NA),
+       cex = 0.55)
+arrows(x0 = bp, x1 = bp, y0 = low.CI, y1 = up.CI, angle = 90, len = 0.1, code = 3, xpd = NA, 
+       col = "darkgrey")
+```
+
+### Plankton counts for feeding
+
+```{r}
+
+planktonPERfish.blk <- c(1700.37, 1156.06, 895.00, 1083.91, 1295.62, 981.04, 1138.08, 893.83, 1405.71, 1074.82, 1835.25, 1315.98, 1912.35, 1332.2, 1274.1, 1621.9, 1941.9, 1306.11, 696.6, 986.20, 1103.61, 652.86, 924.6, 768.24, 905.58)
+planktonPERfish.cp <- c(1153.40, 846.15, 961.74, 1059.8, 1097.1, 675.90, 1241.65, 694.50, 746.67, 1102, 841.33, 705.50, 976.5, 1075.49, 1153.33, 1085.96, 1148.56, 1067.54, 1063.95, 1076.95, 1068.75, 1086.00, 1112.04, 1122.00, 1115.0, 1129.33, 1265.33, 1105.00, 1160.4, 1117.44, 1159)
+
+mean(planktonPERfish.blk)
+mean(planktonPERfish.cp)
+sd(planktonPERfish.blk)
+sd(planktonPERfish.cp)
+```
+
+
+### Make sure that nothing significant happens at day ten in terms of mortality
+
+```{r}
+# Subset Data for Greater than 18C Treatments
+cp.18 <- all.mort[all.mort$Species == "Copper" & all.mort$Treatment_Temperature > 18,]
+blk.18 <- all.mort[all.mort$Species == "Black" & all.mort$Treatment_Temperature > 18,]
+ylt.18 <- all.mort[all.mort$Species == "Yellowtail" & all.mort$Treatment_Temperature > 18,]
+qb.18 <- all.mort[all.mort$Species == "Quillback" & all.mort$Treatment_Temperature > 18,]
+
+# Subset Data for Less than 18C Treatments
+cp.less18 <- all.mort[all.mort$Species == "Copper" & all.mort$Treatment_Temperature < 18,]
+blk.less18 <- all.mort[all.mort$Species == "Black" & all.mort$Treatment_Temperature < 18,]
+ylt.less18 <- all.mort[all.mort$Species == "Yellowtail" & all.mort$Treatment_Temperature < 18,]
+qb.less18 <- all.mort[all.mort$Species == "Quillback" & all.mort$Treatment_Temperature < 18,]
+
+# Subset Data for Less than 15.5C Treatments
+cp.less15 <- all.mort[all.mort$Species == "Copper" & all.mort$Treatment_Temperature < 15,]
+blk.less15 <- all.mort[all.mort$Species == "Black" & all.mort$Treatment_Temperature < 15,]
+ylt.less15 <- all.mort[all.mort$Species == "Yellowtail" & all.mort$Treatment_Temperature < 15,]
+qb.less15 <- all.mort[all.mort$Species == "Quillback" & all.mort$Treatment_Temperature < 15,]
+
+## Black 18 ##
+perc_mort_blk18 <- matrix(NA, 14, 3)
+colnames(perc_mort_blk18) <- c("blkG18", "blkL18", "blkL15")
+survDayG18 <- NULL
+survDayL18 <- NULL
+survDayL15 <- NULL
+for (i in 1:14){
+  if(i == 1){
+    # Greater than 18
+      survDayG18 <- length(blk.18$Days_Survived)
+      perc_mort_blk18[i,1] <- length(blk.18$Days_Survived)/length(blk.18$Days_Survived)
+    # Less than 18
+      survDayL18 <- length(blk.less18$Days_Survived)
+      perc_mort_blk18[i,2] <- length(blk.less18$Days_Survived)/length(blk.less18$Days_Survived)
+    # Less than 15
+      survDayL15 <- length(blk.less15$Days_Survived)
+      perc_mort_blk18[i,3] <- length(blk.less15$Days_Survived)/length(blk.less15$Days_Survived)
+  } else if (i == 14){
+    # Greater than 18
+      survDayG18 <- c(survDayG18, length(blk.18$Days_Survived[blk.18$Days_Survived == i]))
+      perc_mort_blk18[i,1] <- survDayG18[i]/length(blk.18$Days_Survived)
+    # Less than 18
+      survDayL18 <- c(survDayL18, length(blk.less18$Days_Survived[blk.less18$Days_Survived == i]))
+      perc_mort_blk18[i,2] <- survDayL18[i]/length(blk.less18$Days_Survived)
+    # Less than 15
+      survDayL15 <- c(survDayL15, length(blk.less15$Days_Survived[blk.less15$Days_Survived == i]))
+      perc_mort_blk18[i,3] <- survDayL15[i]/length(blk.less15$Days_Survived)
+  } else {
+    # Greater than 18
+      survDayG18 <- c(survDayG18, (survDayG18[i-1] - 
+                                     length(blk.18$Days_Survived[blk.18$Days_Survived == i])))
+      perc_mort_blk18[i,1] <- survDayG18[i]/length(blk.18$Days_Survived)
+    # Less than 18
+      survDayL18 <- c(survDayL18, (survDayL18[i-1] - 
+                                     length(blk.less18$Days_Survived[blk.less18$Days_Survived == i])))
+      perc_mort_blk18[i,2] <- survDayL18[i]/length(blk.less18$Days_Survived)
+    # Less than 15
+      survDayL15 <- c(survDayL15, (survDayL15[i-1] - 
+                                     length(blk.less15$Days_Survived[blk.less15$Days_Survived == i])))
+      perc_mort_blk18[i,3] <- survDayL15[i]/length(blk.less15$Days_Survived)
+  }
+}
+
+## Copper 18 ##
+perc_mort_cp18 <- matrix(NA, 14, 3)
+colnames(perc_mort_cp18) <- c("cpG18", "cpL18", "cpL15")
+survDayG18 <- NULL
+survDayL18 <- NULL
+survDayL15 <- NULL
+for (i in 1:14){
+  if(i == 1){
+    # Greater than 18
+      survDayG18 <- length(cp.18$Days_Survived)
+      perc_mort_cp18[i,1] <- length(cp.18$Days_Survived)/length(cp.18$Days_Survived)
+    # Less than 18
+      survDayL18 <- length(cp.less18$Days_Survived)
+      perc_mort_cp18[i,2] <- length(cp.less18$Days_Survived)/length(cp.less18$Days_Survived)
+    # Less than 15
+      survDayL15 <- length(cp.less15$Days_Survived)
+      perc_mort_cp18[i,3] <- length(cp.less15$Days_Survived)/length(cp.less15$Days_Survived)
+  } else if (i == 14){
+    # Greater than 18
+      survDayG18 <- c(survDayG18, length(cp.18$Days_Survived[cp.18$Days_Survived == i]))
+      perc_mort_cp18[i,1] <- survDayG18[i]/length(cp.18$Days_Survived)
+    # Less than 18
+      survDayL18 <- c(survDayL18, length(cp.less18$Days_Survived[cp.less18$Days_Survived == i]))
+      perc_mort_cp18[i,2] <- survDayL18[i]/length(cp.less18$Days_Survived)
+    # Less than 15
+      survDayL15 <- c(survDayL15, length(cp.less15$Days_Survived[cp.less15$Days_Survived == i]))
+      perc_mort_cp18[i,3] <- survDayL15[i]/length(cp.less15$Days_Survived)
+  } else {
+    # Greater than 18
+      survDayG18 <- c(survDayG18, (survDayG18[i-1] - 
+                                     length(cp.18$Days_Survived[cp.18$Days_Survived == i])))
+      perc_mort_cp18[i,1] <- survDayG18[i]/length(cp.18$Days_Survived)
+    # Less than 18
+      survDayL18 <- c(survDayL18, (survDayL18[i-1] - 
+                                     length(cp.less18$Days_Survived[cp.less18$Days_Survived == i])))
+      perc_mort_cp18[i,2] <- survDayL18[i]/length(cp.less18$Days_Survived)
+    # Less than 15
+      survDayL15 <- c(survDayL15, (survDayL15[i-1] - 
+                                     length(cp.less15$Days_Survived[cp.less15$Days_Survived == i])))
+      perc_mort_cp18[i,3] <- survDayL15[i]/length(cp.less15$Days_Survived)
+  }
+}
+
+## Quillback 18 ##
+perc_mort_qb18 <- matrix(NA, 14, 3)
+colnames(perc_mort_qb18) <- c("qbG18", "qbL18", "qbL15")
+survDayG18 <- NULL
+survDayL18 <- NULL
+survDayL15 <- NULL
+for (i in 1:14){
+  if(i == 1){
+    # Greater than 18
+      survDayG18 <- length(qb.18$Days_Survived)
+      perc_mort_qb18[i,1] <- length(qb.18$Days_Survived)/length(qb.18$Days_Survived)
+    # Less than 18
+      survDayL18 <- length(qb.less18$Days_Survived)
+      perc_mort_qb18[i,2] <- length(qb.less18$Days_Survived)/length(qb.less18$Days_Survived)
+    # Less than 15
+      survDayL15 <- length(qb.less15$Days_Survived)
+      perc_mort_qb18[i,3] <- length(qb.less15$Days_Survived)/length(qb.less15$Days_Survived)
+  } else if (i == 14){
+    # Greater than 18
+      survDayG18 <- c(survDayG18, length(qb.18$Days_Survived[qb.18$Days_Survived == i]))
+      perc_mort_qb18[i,1] <- survDayG18[i]/length(qb.18$Days_Survived)
+    # Less than 18
+      survDayL18 <- c(survDayL18, length(qb.less18$Days_Survived[qb.less18$Days_Survived == i]))
+      perc_mort_qb18[i,2] <-  survDayL18[i]/length(qb.less18$Days_Survived)
+    # Less than 15
+      survDayL15 <- c(survDayL15, length(qb.less15$Days_Survived[qb.less15$Days_Survived == i]))
+      perc_mort_qb18[i,3] <-  survDayL15[i]/length(qb.less15$Days_Survived)
+  } else {
+    # Greater than 18
+      survDayG18 <- c(survDayG18, (survDayG18[i-1] - 
+                                     length(qb.18$Days_Survived[qb.18$Days_Survived == i])))
+      perc_mort_qb18[i,1] <- survDayG18[i]/length(qb.18$Days_Survived)
+    # Less than 18
+      survDayL18 <- c(survDayL18, (survDayL18[i-1] - 
+                                     length(qb.less18$Days_Survived[qb.less18$Days_Survived == i])))
+      perc_mort_qb18[i,2] <- survDayL18[i]/length(qb.less18$Days_Survived)
+    # Less than 15
+      survDayL15 <- c(survDayL15, (survDayL15[i-1] - 
+                                     length(qb.less15$Days_Survived[qb.less15$Days_Survived == i])))
+      perc_mort_qb18[i,3] <- survDayL15[i]/length(qb.less15$Days_Survived)
+  }
+}
+
+## Yellowtail 18 ##
+perc_mort_ylt18 <- matrix(NA, 14, 3)
+colnames(perc_mort_ylt18) <- c("yltG18", "yltL18", "yltL15")
+survDayG18 <- NULL
+survDayL18 <- NULL
+survDayL15 <- NULL
+for (i in 1:14){
+  if(i == 1){
+    # Greater than 18
+      survDayG18 <- length(ylt.18$Days_Survived)
+      perc_mort_ylt18[i,1] <- length(ylt.18$Days_Survived)/length(ylt.18$Days_Survived)
+    # Less than 18
+      survDayL18 <- length(ylt.less18$Days_Survived)
+      perc_mort_ylt18[i,2] <- length(ylt.less18$Days_Survived)/length(ylt.less18$Days_Survived)
+    # Less than 15
+      survDayL15 <- length(ylt.less15$Days_Survived)
+      perc_mort_ylt18[i,3] <- length(ylt.less15$Days_Survived)/length(ylt.less15$Days_Survived)
+  } else if (i == 14){
+    # Greater than 18
+      survDayG18 <- c(survDayG18, length(ylt.18$Days_Survived[ylt.18$Days_Survived == i]))
+      perc_mort_ylt18[i,1] <- survDayG18[i]/length(ylt.18$Days_Survived)
+    # Less than 18
+      survDayL18 <- c(survDayL18, length(ylt.less18$Days_Survived[ylt.less18$Days_Survived == i]))
+      perc_mort_ylt18[i,2] <-  survDayL18[i]/length(ylt.less18$Days_Survived)
+    # Less than 15
+      survDayL15 <- c(survDayL15, length(ylt.less15$Days_Survived[ylt.less15$Days_Survived == i]))
+      perc_mort_ylt18[i,3] <-  survDayL15[i]/length(ylt.less15$Days_Survived)
+  } else {
+    # Greater than 18
+      survDayG18 <- c(survDayG18, (survDayG18[i-1] - 
+                                     length(ylt.18$Days_Survived[ylt.18$Days_Survived == i])))
+      perc_mort_ylt18[i,1] <- survDayG18[i]/length(ylt.18$Days_Survived)
+    # Less than 18
+      survDayL18 <- c(survDayL18, (survDayL18[i-1] - 
+                                     length(ylt.less18$Days_Survived[ylt.less18$Days_Survived == i])))
+      perc_mort_ylt18[i,2] <- survDayL18[i]/length(ylt.less18$Days_Survived)
+    # Less than 15
+      survDayL15 <- c(survDayL15, (survDayL15[i-1] - 
+                                     length(ylt.less15$Days_Survived[ylt.less15$Days_Survived == i])))
+      perc_mort_ylt18[i,3] <- survDayL15[i]/length(ylt.less15$Days_Survived)
+  }
+}
+
+```
+
+
+```{r}
+
+days <- 1:14
+all.mort.data <- cbind(days, perc_mort_blk18, perc_mort_cp18, perc_mort_qb18, perc_mort_ylt18)
+par(mfrow = c(1,2))
+ # Plot Mortality in Greater than 18C Treatments for All Species
+  plot(blkG18~days, data = all.mort.data, ylim = c(0,1.1), type = "l", col = "black", lty = 2, 
+       lwd = 3, ylab = "Proportion of Fish Alive", xlab = "Day", bty = "l", 
+       main = "Mortality in > 18C Treatments")
+    points(cpG18~days, data = all.mort.data, type = "l", col = "orange", lwd = 3)
+    points(qbG18~days, data = all.mort.data, type = "l", col = "brown", lwd = 3)
+    lines(yltG18~days, data = all.mort.data, lty = 2, type = "l", col = "goldenrod", lwd = 3)
+    abline(v = 10, lty = 2)
+    legend(1, 0.35, legend = c("Copper", "Quillback", "Black", "Yellowtail"), 
+           col = c("orange", "brown", "black", "goldenrod"), lwd = 3, lty = c(1, 1, 2, 2))
+    text(13, 0.61, label = "n = 24", col = "orange")
+    text(13, 0.1, label = "n = 9", col = "brown")
+    text(13, 0.8, label = "n = 4", col = "goldenrod")
+    text(13, 0.9, label = "n = 19", col = "black")
+    
+ # Plot Mortality in Less than 18C Treatments for All Species
+  plot(blkL18~days, data = all.mort.data, ylim = c(0,1.1), type = "l", col = "black", lwd = 3, 
+       ylab = "Proportion of Fish Alive", xlab = "Day", bty = "l", 
+       main = "Mortality in < 18C Treatments")
+    points(qbL18~days, data = all.mort.data, type = "l", col = "brown", lwd = 3)
+    points(cpL18~days, data = all.mort.data, type = "l", col = "orange", lwd = 3)
+    lines(yltL18~days, data = all.mort.data, lty = 2, col = "goldenrod", lwd = 3)
+    abline(v = 10, lty = 2)
+    legend(1, 0.35, legend = c("Copper", "Quillback", "Black","Yellowtail"), 
+           col = c("orange", "brown", "black", "goldenrod"), lwd = 3, lty = c(1, 1, 2, 2))
+    text(13.6, 0.95, label = "n = 12", col = "orange")
+    text(13.6, 0.6, label = "n = 11", col = "brown")
+    text(13.4, 1.11, label = "n = 5", col = "goldenrod")
+    text(13.6, 1.04, label = "n = 10", col = "black")
+    
+  # Plot Mortality in Less than 18C Treatments for All Species
+  plot(blkL15~days, data = all.mort.data, ylim = c(0,1.1), type = "l", col = "black", lwd = 3, 
+       ylab = "Proportion of Fish Alive", xlab = "Day", bty = "l", 
+       main = "Mortality in < 15C Treatments")
+    points(qbL15~days, data = all.mort.data, type = "l", col = "brown", lwd = 3)
+    points(cpL15~days, data = all.mort.data, type = "l", col = "orange", lwd = 3)
+    lines(yltL15~days, data = all.mort.data, lty = 2, col = "goldenrod", lwd = 3)
+    abline(v = 10, lty = 2)
+    legend(1, 0.35, legend = c("Copper", "Quillback", "Black","Yellowtail"), 
+           col = c("orange", "brown", "black", "goldenrod"), lwd = 3, lty = c(1, 1, 2, 2))
+    text(13.6, 0.95, label = "n = 12", col = "orange")
+    text(13.6, 0.6, label = "n = 11", col = "brown")
+    text(13.4, 1.11, label = "n = 5", col = "goldenrod")
+    text(13.6, 1.04, label = "n = 10", col = "black")
+
+```
+
+
+

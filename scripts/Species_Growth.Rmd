@@ -1,0 +1,351 @@
+---
+title: "Species Growth Analysis"
+author: "Sara Michele Schaal"
+date: "November 8, 2016"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+# Data Manipulation
+## Input Data and Split Experiments
+```{r}
+
+  # Input data
+    df.growth <- read.csv("/Users/saraschaal/Documents/Northeastern/LotterhosLab/Research/Field Work/2015/TPC_Experiment/Analysis/data/Fish_Measurement_Data_Final.csv") 
+                            #what is going on with this ...can't use relative path?
+    
+copper.df <- df.growth[df.growth$Species_Seq == "Copper" | df.growth$Species_Seq == "Quillback",]
+boxplot(copper.df$Number_of_Parasites ~ copper.df$Date)
+
+
+  # Subset Dataframe to Include only Those Necessary for Analysis
+    df.subgrowth  <- subset(df.growth, select = c("Date", "Species_Seq", "Length_mm", "Weight_g",
+                                                  "Individual_IDs", "Experimental_Treatment_C",
+                                                  "Bucket"))
+
+  # Remove columns with any NAs
+    df.completegrowth <- na.omit(df.subgrowth)
+
+  # Correct start and end days for two experiments
+    start.day.blk <- subset(df.completegrowth, df.completegrowth$Date==20150620)
+    last.day.blk <- subset(df.completegrowth, df.completegrowth$Date==20150703)
+    start.day.cp <- subset(df.completegrowth, df.completegrowth$Date==20150704)
+    last.day.cp <- subset(df.completegrowth, df.completegrowth$Date==20150718)
+
+    write.csv(last.day.blk, "last_day_black.csv")
+    write.csv(last.day.cp, "last_day_copper.csv")
+    write.csv(start.day.blk, "start.day.blk.csv")
+    write.csv(start.day.cp, "start.day.cp.csv")
+    
+    copper.data <- read.csv("/Users/saraschaal/Documents/Northeastern/LotterhosLab/Research/Field Work/2015/TPC_Experiment/Analysis/data/Copper_Weight.csv", header = TRUE)
+    black.data <- read.csv("/Users/saraschaal/Documents/Northeastern/LotterhosLab/Research/Field Work/2015/TPC_Experiment/Analysis/data/Black_Weight.csv", header = TRUE)
+    
+```
+
+## Set Buckets to Correct Experimental Temperature 
+```{r}
+
+# Copper
+for (i in 1:nrow(copper.data)){
+  if(copper.data$Bucket[i] == 1){
+    copper.data$Bucket[i] <- replace(copper.data$Bucket[i], 1, 10.51111)
+  }else if(copper.data$Bucket[i] == 2){
+    copper.data$Bucket[i] <- replace(copper.data$Bucket[i], 1, 10.58704)
+  }else if(copper.data$Bucket[i] == 3){
+    copper.data$Bucket[i] <- replace(copper.data$Bucket[i], 1, 13.46111)
+  }else if(copper.data$Bucket[i] == 4){
+    copper.data$Bucket[i] <- replace(copper.data$Bucket[i], 1, 13.71667)
+  }else if(copper.data$Bucket[i] == 5){
+    copper.data$Bucket[i] <- replace(copper.data$Bucket[i], 1, 15.10000)
+  }else if(copper.data$Bucket[i] == 6){
+    copper.data$Bucket[i] <- replace(copper.data$Bucket[i], 1, 17.15000)
+  }else if(copper.data$Bucket[i] == 7){
+    copper.data$Bucket[i] <- replace(copper.data$Bucket[i], 1, 17.97037)
+  }else if(copper.data$Bucket[i] == 8){
+    copper.data$Bucket[i] <- replace(copper.data$Bucket[i], 1, 19.22222)
+  }else if(copper.data$Bucket[i] == 9){
+    copper.data$Bucket[i] <- replace(copper.data$Bucket[i], 1, 18.90926)
+  }else if(copper.data$Bucket[i] == 10){
+    copper.data$Bucket[i] <- replace(copper.data$Bucket[i], 1, 19.98889)
+  }else if(copper.data$Bucket[i] == 11){
+    copper.data$Bucket[i] <- replace(copper.data$Bucket[i], 1, 19.91852)
+  }else if(copper.data$Bucket[i] == 12){
+    copper.data$Bucket[i] <- replace(copper.data$Bucket[i], 1, 21.03333)
+  }else if(copper.data$Bucket[i] == 13){
+    copper.data$Bucket[i] <- replace(copper.data$Bucket[i], 1, 21.40741)
+  }else {
+    copper.data$Bucket[i] <- replace(copper.data$Bucket[i], 1, 22.01296)
+  }
+}
+
+#Black
+for (i in 1:nrow(black.data)){
+  if(black.data$Bucket[i] == 1){
+    black.data$Bucket[i] <- replace(black.data$Bucket[i], 1, 10.45769)
+  }else if(black.data$Bucket[i] == 2){
+    black.data$Bucket[i] <- replace(black.data$Bucket[i], 1, 10.33846)
+  }else if(black.data$Bucket[i] == 3){
+    black.data$Bucket[i] <- replace(black.data$Bucket[i], 1, 14.09038)
+  }else if(black.data$Bucket[i] == 4){
+    black.data$Bucket[i] <- replace(black.data$Bucket[i], 1, 13.89808)
+  }else if(black.data$Bucket[i] == 5){
+    black.data$Bucket[i] <- replace(black.data$Bucket[i], 1, 15.23462)
+  }else if(black.data$Bucket[i] == 6){
+    black.data$Bucket[i] <- replace(black.data$Bucket[i], 1, 17.86923)
+  }else if(black.data$Bucket[i] == 7){
+    black.data$Bucket[i] <- replace(black.data$Bucket[i], 1, 19.35962)
+  }else if(black.data$Bucket[i] == 8){
+    black.data$Bucket[i] <- replace(black.data$Bucket[i], 1, 18.48462)
+  }else if(black.data$Bucket[i] == 9){
+    black.data$Bucket[i] <- replace(black.data$Bucket[i], 1, 19.98462)
+  }else if(black.data$Bucket[i] == 10){
+    black.data$Bucket[i] <- replace(black.data$Bucket[i], 1, 19.45192)
+  }else if(black.data$Bucket[i] == 11){
+    black.data$Bucket[i] <- replace(black.data$Bucket[i], 1, 20.18269)
+  }else if(black.data$Bucket[i] == 12){
+    black.data$Bucket[i] <- replace(black.data$Bucket[i], 1, 20.71346)
+  }else if(black.data$Bucket[i] == 13){
+    black.data$Bucket[i] <- replace(black.data$Bucket[i], 1, 20.97308)
+  }else {
+    black.data$Bucket[i] <- replace(black.data$Bucket[i], 1, 22.61731)
+  }
+}
+
+# Remove bad data point in copper
+copper.data <- copper.data[-34,]
+
+# Get full dataframe for analyzing across all species
+all.data <- rbind(copper.data, black.data)
+```
+ 
+## Calculate Growth Indices
+```{r}
+    # Calculate % Weight Change
+    #copper.data$Per_Weight <- ((copper.data$End_Weight - copper.data$Start_Weight)/
+                                 #(copper.data$Start_Weight))*100
+    #black.data$Per_Weight <- ((black.data$End_Weight - black.data$Start_Weight)/
+                                #(black.data$Start_Weight))*100
+    all.data$Per_Weight <- ((all.data$End_Weight - all.data$Start_Weight)/
+                                 (all.data$Start_Weight))*100
+    
+    # Get Condition Factor
+   # copper.data$CF <- ((copper.data$End_Weight/(copper.data$End_Length)^3)*100)-
+   #  ((copper.data$Start_Weight/(copper.data$Start_Length)^3)*100)
+   # black.data$CF <- ((black.data$End_Weight/(black.data$End_Length)^3)*100)-
+   #  ((black.data$Start_Weight/(black.data$Start_Length)^3)*100)
+    all.data$CF <- ((all.data$End_Weight/(all.data$End_Length)^3)*100)-
+      ((all.data$Start_Weight/(all.data$Start_Length)^3)*100)
+    
+```
+
+# Analyses
+## All Species Together
+```{r}
+#########################
+#### Model Selection ####
+#########################
+
+  all.data <- all.data[all.data$Species_Seq == "Black" |
+                       all.data$Species_Seq == "Yellowtail" |
+                       all.data$Species_Seq == "Copper" |
+                       all.data$Species_Seq == "Quillback",]
+  
+  all.m1 <- lm(all.data$Per_Weight~all.data$Bucket*all.data$Species_Seq)
+  summary(aov(all.m1))
+  summary(all.m1)
+  Anova(all.m1)
+  drop1(all.m1)
+  
+  # no species interaction drop interaction term
+  all.m2 <- lm(all.data$Per_Weight~all.data$Bucket + all.data$Species_Seq)
+  summary(all.m2)
+  summary(aov(all.m2))
+  Anova(all.m2, type = 2)
+  drop1(all.m2) # Shows a significant affect of temp on growth in Quillback but N = 6 
+  
+  Anova(all.m2)
+  
+  mc <- lsmeans(all.m2, ~ Species2, adjust = "Tukey")
+  summary(mc)
+  
+  
+  all.m3 <- lm(all.data$Per_Weight~all.data$Bucket)
+  summary(all.m3)
+  
+  anova(all.m2, all.m3, test = "LRT")
+  
+############################
+#### Model Assumptions #####
+############################
+  
+  plot(all.m2)
+  
+##################
+#### Plotting ####
+##################
+  plot(all.data$Per_Weight[all.data$Species_Seq == "Black"]~
+         all.data$Bucket[all.data$Species_Seq == "Black"], 
+       pch = 19, col = "black", bty = "l", 
+       ylab = "Percent Weight Change", 
+       xlab = "Temperature", ylim = c(-40, 55))
+  points(all.data$Per_Weight[all.data$Species_Seq == "Yellowtail"]~
+           all.data$Bucket[all.data$Species_Seq == "Yellowtail"], 
+         col = "black", pch = 21, bg = "goldenrod")
+  points(all.data$Per_Weight[all.data$Species_Seq == "Copper"]~
+           all.data$Bucket[all.data$Species_Seq == "Copper"], 
+         col = "orange", pch = 19)
+  points(all.data$Per_Weight[all.data$Species_Seq == "Quillback"]~
+           all.data$Bucket[all.data$Species_Seq == "Quillback"], 
+         col = "brown", pch = 19)
+  legend(19.5,53, legend = c("Black", "Yellowtail", "Copper", "Quillback"), 
+         pch = c(19,21,19,19), pt.bg = c("black", "goldenrod", "orange", "brown"), 
+         col = c("black", "black", "orange", "brown"))
+  abline(all.m4, col = "darkgrey", lwd = 3)
+  abline(quill.m1, col = "brown", lwd = 3)
+  
+
+  plot(all.data$Per_Weight~all.data$Bucket, pch = 19,
+       bty = "l", ylab = "Percent Weight Change", xlab = "Temperature", 
+       main = "All Species Growth Across Temperatures")
+  text(20, 33, "-2.08 +/- 0.36***")
+  abline(all.m2, lwd = 3)
+
+# Plot with 3 non significant species black and quillback in brown with separate line
+
+ plot(all.data$Per_Weight[all.data$Species_Seq == "Black"]~
+         all.data$Bucket[all.data$Species_Seq == "Black"], 
+       pch = 19, col = "black", bty = "l", 
+       ylab = "Percent Weight Change", 
+       xlab = "Temperature", ylim = c(-40, 55))
+ points(all.data$Per_Weight[all.data$Species_Seq == "Yellowtail"]~
+        all.data$Bucket[all.data$Species_Seq == "Yellowtail"], 
+        col = "black", pch = 15)
+ points(all.data$Per_Weight[all.data$Species_Seq == "Copper"]~
+        all.data$Bucket[all.data$Species_Seq == "Copper"], 
+        col = "black", pch = 18)
+ points(all.data$Per_Weight[all.data$Species_Seq == "Quillback"]~
+        all.data$Bucket[all.data$Species_Seq == "Quillback"], 
+        col = "brown", pch = 17)
+ legend(17,58, legend = c("Black", "Yellowtail", "Copper", "Quillback", 
+                          "BYC model fit", "Quillback model fit"), 
+        pch = c(19,15,18,17,NA,NA), lty = c(NA, NA, NA, NA, 1, 2), 
+         col = c("black", "black", "black", "brown", "black", "brown"), lwd = 2)
+ abline(all.m2, lwd = 2)
+ summary(all.m2)
+ quillback.int <- summary(all.m2)$coefficient[1]+summary(all.m2)$coefficient[3]
+ abline(quillback.int, summary(all.m2)$coefficient[2], lty = 2, col = "brown", lwd = 2)
+ #text(14, 50, label = "BYC model fit -2.23x + 25.40")
+ #text(14, 43, label = "Quillback model fit -2.23x + 16.34")
+  
+```
+ 
+# Split Two Experiments (NOT USING ANYTHING THAT FOLLOWS)
+## Black Rockfish
+### Plotting
+```{r}
+
+# Separate Data into Species
+  black.data.2 <- subset(black.data, black.data$Species_Seq == "Black")
+  yellowtail.data <- subset(black.data, black.data$Species_Seq == "Yellowtail")
+
+# Plot Percent Weight Change
+  plot(black.data.2$Per_Weight~black.data.2$Bucket, col = "black",
+       lwd = 5, pch = 20, bty = "l", ylab = "Percent Weight Change", 
+     xlab = expression(paste("Temperature (",degree,"C)")), 
+     main = "Black Rockfish Experiment", 
+     ylim = c(-40, 60))
+  
+  points(yellowtail.data$Per_Weight~yellowtail.data$Bucket, 
+         col = "goldenrod", lwd = 5, pch = 20)
+  legend("topright", legend = c("Black", "Yellowtail"), 
+         pch = c(20, 20), col = c("black", "goldenrod"))
+
+```
+
+## Model Selection
+```{r}
+BYdata <- all.data[all.data$Species_Seq == "Black" | all.data$Species_Seq == "Yellowtail",]
+mod1_blkAyt <- lm(BYdata$Per_Weight~BYdata$Bucket*BYdata$Species_Seq)
+summary(mod1_blkAyt)
+# Drop Interaction Term not significant
+
+mod2_blkAyt <- lm(BYdata$Per_Weight~BYdata$Bucket + BYdata$Species_Seq + BYdata$Start_Weight)
+summary(mod2_blkAyt)
+drop1(mod2_blkAyt) # Drop Weight
+
+mod3_blkAyt <- lm(BYdata$Per_Weight~BYdata$Bucket + BYdata$Species_Seq)
+summary(mod3_blkAyt)
+drop1(mod3_blkAyt) # Drop Weight
+
+mod4_blkAyt <- lm(BYdata$Per_Weight~BYdata$Bucket)
+summary(mod4_blkAyt) # Analyze together
+
+# Create Final Plot
+  plot(all.data$Per_Weight[all.data$Species_Seq == "Black"]~all.data$Bucket[all.data$Species_Seq == "Black"], col = "black",
+       lwd = 5, pch = 18, bty = "l", ylab = "Percent Weight Change", 
+       xlab = "Temperature", ylim = c(-40, 60), 
+       main = "Black Rockfish Experiment", cex.lab = 1.5)
+  points(all.data$Per_Weight[all.data$Species_Seq == "Yellowtail"]~
+         all.data$Bucket[all.data$Species_Seq == "Yellowtail"], col = "goldenrod", 
+         lwd = 5, pch = 15, bty = "l")
+  abline(mod4_blkAyt, lwd = 3)
+  text(19,19, "-1.45 +/- 0.24***")
+  legend("topright", legend = c("Black", "Yellowtail"), 
+         pch = c(18, 15), col = c("black", "goldenrod"))
+  
+
+```
+
+## Copper Rockfish
+### Model Two Species Together (Copper & Quillback)
+```{r}
+mod1_cpAqb <- lm(copper.data$Per_Weight~copper.data$Bucket*copper.data$Species_Seq + copper.data$Species_Seq + copper.data$Start_Weight)
+summary(mod1_cpAqb)
+drop1(mod1_cpAqb)
+#Analyze separate? -- ** Struggling with this one no significant interaction term but the drop indicates I should leave species interaction in
+
+# 
+mod2_cpAqb <- lm(copper.data$Per_Weight~copper.data$Bucket + copper.data$Species_Seq + copper.data$Start_Weight)
+summary(mod2_cpAqb)
+drop1(mod2_cpAqb) 
+
+mod3_cpAqb <- lm(copper.data$Per_Weight~copper.data$Bucket + copper.data$Species_Seq)
+summary(mod3_cpAqb)
+
+cop.quill.color <- c("orange", "brown")
+palette(cop.quill.color)
+plot(copper.data$Per_Weight~copper.data$Bucket, col = copper.data$Species_Seq, lwd = 5, 
+     pch = 20, bty = "l", ylab = "Percent Weight Change", 
+     xlab = "Temperature", main = "Copper Rockfish Experiment")
+#what fit would I add to the graph?
+```
+
+### Model Them Separately
+```{r}
+
+# Subset Species Data
+  copper.data.2 <- subset(copper.data, copper.data$Species_Seq == "Copper")
+  quillback.data <- subset(copper.data, copper.data$Species_Seq == "Quillback")
+  
+# Model Quillback 
+  qb.mod1 <- lm(quillback.data$Per_Weight~quillback.data$Bucket 
+                  + quillback.data$Start_Weight)
+  summary(qb.mod1)
+  drop1(qb.mod1)
+
+# Model Copper
+  cop.mod1 <- lm(copper.data.2$Per_Weight~copper.data.2$Bucket 
+                  + copper.data.2$Start_Weight)
+  summary(cop.mod1)
+
+#Copper Rockfish Experiment Plots
+ plot(copper.data.2$Per_Weight~copper.data.2$Bucket, col = "orange",
+       lwd = 5, pch = 20, bty = "l", ylab = "Percent Weight Change", 
+     xlab = "Temperature", main = "Copper Rockfish Experiment")
+ points(quillback.data$Per_Weight~quillback.data$Bucket, col = "brown",
+        lwd = 5, pch = 20)
+ legend("topright", legend = c("Copper", "Quillback"), 
+         pch = c(20, 20), col = c("orange", "brown"))
+
+```

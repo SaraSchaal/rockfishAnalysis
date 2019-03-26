@@ -1,0 +1,43 @@
+"0","#######################"
+"0","#### Load Packages ####"
+"0","#######################"
+"0","    if(!(""plyr"" %in% installed.packages())){"
+"0","      install.packages(""plyr"")"
+"0","    }"
+"0","    if(!(""dplyr"" %in% installed.packages())){"
+"0","      install.packages(""dplyr"")"
+"0","    }"
+"0","    if(!(""ggplot2"" %in% installed.packages())){"
+"0","      install.packages(""ggplot2"")"
+"0","    }"
+"0","    if(!(""scales"" %in% installed.packages())){"
+"0","      install.packages(""scales"")"
+"0","    }"
+"0","    library(plyr)"
+"0","    library(dplyr)"
+"2","package ‘dplyr’ was built under R version 3.4.2"
+"2","
+Attaching package: ‘dplyr’
+
+"
+"2","The following objects are masked from ‘package:plyr’:
+
+    arrange, count, desc, failwith, id, mutate, rename, summarise, summarize
+
+"
+"2","The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+"
+"2","The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+"
+"0","    library(ggplot2)"
+"2","Find out what's changed in ggplot2 at http://github.com/tidyverse/ggplot2/releases.
+"
+"0","    library(scales)"
+"2","package ‘scales’ was built under R version 3.4.1"
+"0","    "

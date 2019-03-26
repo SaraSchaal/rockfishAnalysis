@@ -1,0 +1,2 @@
+"0","# This is where you set global options (leave as-is)"
+"0","knitr::opts_chunk$set(echo = TRUE)"

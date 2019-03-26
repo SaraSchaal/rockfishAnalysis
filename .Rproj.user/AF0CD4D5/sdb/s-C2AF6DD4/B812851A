@@ -1,0 +1,21 @@
+{
+    "collab_server" : "",
+    "contents" : "exp <- c(0.56, 0.19, 0.19, 0.06)\nobs <- c(37, 9, 14, 40)\nsum(obs)\n\n# Question 3 Contingency \n\nobs.mat <- matrix(nrow = 2, ncol = 2, data = obs)\nrownames(obs.mat) <- c(\"large\", \"small\")\ncolnames(obs.mat) <- c(\"tall\", \"short\")\nobs.mat\n\np.tall <- (obs.mat[1,1] + obs.mat[2,1])/100 \np.short <- (obs.mat[1,2] + obs.mat[2,2])/100\np.large <- (obs.mat[1,1] + obs.mat[1,2])/100\np.small <- (obs.mat[2,1] + obs.mat[2,2])/100\n\nexp <- c(p.tall*p.large*100, p.tall*p.small*100, p.short*p.large*100, p.short*p.small*100)\nexp.mat <- matrix(data = exp, nrow = 2, ncol = 2) \n\nsum((obs - exp)^2/exp)\ndf <-  1*1 \n",
+    "created" : 1553295416632.000,
+    "dirty" : true,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "3653223960",
+    "id" : "B812851A",
+    "lastKnownWriteTime" : 4511575560,
+    "last_content_update" : 1553302183477,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "tempName" : "Untitled2"
+    },
+    "relative_order" : 9,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

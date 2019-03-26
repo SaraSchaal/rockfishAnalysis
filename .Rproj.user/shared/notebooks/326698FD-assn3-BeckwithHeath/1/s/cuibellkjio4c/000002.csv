@@ -1,0 +1,11 @@
+"0","benguela.upw <- read.csv(""http://faraway.neu.edu/data/assn4_upwelling_benguela.csv"")"
+"0","california.upw <- read.csv(""http://faraway.neu.edu/data/assn4_upwelling_california.csv"")"
+"0","canary.upw <- read.csv(""http://faraway.neu.edu/data/assn4_upwelling_canary.csv"")"
+"0","humboldt.upw <- read.csv(""http://faraway.neu.edu/data/assn4_upwelling_humboldt.csv"")"
+"0","benguela.tmp <- read.csv(""http://faraway.neu.edu/data/assn4_temperature_benguela.csv"")"
+"0","humboldt.tmp <- read.csv(""http://faraway.neu.edu/data/assn4_temperature_humboldt.csv"")"
+"0","canary.tmp <- read.csv(""http://faraway.neu.edu/data/assn4_temperature_canary.csv"")"
+"0","california.tmp <- read.csv(""http://faraway.neu.edu/data/assn4_temperature_california.csv"")"
+"0","```"
+"2","Error: attempt to use zero-length variable name
+"

@@ -1,0 +1,4 @@
+"0","california$period <- ifelse(california$year < 2025, ""before"", ""after"")"
+"0","benguela$period <- ifelse(benguela$year < 2025, ""before"", ""after"")"
+"0","canary$period <- ifelse(canary$year < 2025, ""before"", ""after"")"
+"0","humboldt$period <- ifelse(humboldt$year < 2025, ""before"", ""after"")"

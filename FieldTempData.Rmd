@@ -1,0 +1,225 @@
+---
+title: "Field Temp Data"
+author: "Sara Michele Schaal"
+date: "3/15/2018"
+output: html_document
+---
+#Aphrodite Point Data
+##Monthly Average SST
+```{r}
+# Load Libraries
+  library(ggplot2)
+  library(scales)
+
+# Input and Manipulate Data
+  aphmonthSST <- read.csv("/Users/saraschaal/Documents/Northeastern/LotterhosLab/Research/Field Work/2015/TPC_Experiment/2004_2011MonthSSTAphroditePoint.csv")
+  aphmonthSST.long <- reshape(aphmonthSST, varying = list(2:13), idvar = "year", direction = "long")
+  colnames(aphmonthSST.long) <- c("year", "month", "SST")
+
+# Plot Monthly Averages
+  aphmonthSSTplot <- ggplot(data=aphmonthSST.long, 
+                           aes(x=month, y=SST, 
+                              group=as.factor(year), 
+                              color = as.integer(year)))  +
+                   geom_point() + 
+                   geom_smooth(method = "loess", se = FALSE) 
+  aphmonthSSTplot + labs(y = "Monthly Average SST", x = "Month") + ggtitle("Aphrodite Point") 
+
+# box plot of Monthly Average SST at Aphrodite Point
+  boxplot(SST~year, data = aphmonthSST.long, ylim = c(6,15), 
+          ylab = "Monthly Mean SST", xlab = "Year")
+  
+# Extract recruitment months
+  recruitmonths <- aphmonthSST.long[aphmonthSST.long$month == 5 | 
+                                    aphmonthSST.long$month == 6 | 
+                                    aphmonthSST.long$month == 7,]
+# boxplot recruitment months
+  boxplot(SST~year, data = recruitmonths, 
+          ylab = "Monthly Mean SST", xlab = "Year")
+  
+  
+```
+
+
+##Monthly Max?
+```{r}
+# Input data
+  aphdailySST <- read.csv("/Users/saraschaal/Documents/Northeastern/LotterhosLab/Research/Field Work/2015/TPC_Experiment/AmphitriteDailySalTemp.csv")
+
+# Manipulate Data
+  aphdaily2004 <- subset(aphdailySST, subset = aphdailySST$Year > 2003 & aphdailySST$Year < 2017)
+  aphdaily2004 <- aphdaily2004[aphdaily2004$Temperature < 99.9,]
+  aphdaily2004$MonthDay <- paste(aphdaily2004$Month, aphdaily2004$Day)
+  aphdaily2004$YMD <- paste(aphdaily2004$Year, aphdaily2004$Month, aphdaily2004$Day)
+  aphdaily2004$Date <- as.Date(aphdaily2004$YMD, "%Y %m %d")
+
+# Set standard error function
+  SE <- function(x){
+    sd(x)/sqrt(length(x))
+  }
+  
+# Get monthly max temperature
+  month.max <- aggregate(Temperature ~ Year + Month, data = aphdaily2004, FUN = max)
+  month.max$YearMonth <- paste(month.max$Year, month.max$Month, "01", sep = "-")
+  month.max$Date <- as.Date(month.max$YearMonth, "%Y-%m-%d")
+  month.max <- month.max[order(month.max$Date),]
+
+# Get monthly mean with CIs  
+  month.mean <- aggregate(Temperature ~ Year + Month, data = aphdaily2004, FUN = mean)
+  month.mean$YearMonth <- paste(month.mean$Year, month.mean$Month, "01", sep = "-")
+  month.mean$Date <- as.Date(month.mean$YearMonth, "%Y-%m-%d")
+  month.mean <- month.mean[order(month.mean$Date),]
+  
+  month.mean$SE <- aggregate(Temperature ~ Year + Month, data = aphdaily2004, FUN = SE)
+  month.mean$upr <- month.mean$SE + month.mean$Temperature
+  month.mean$low <- month.mean$Temperature - month.mean$SE
+  
+# Plot Monthly Max
+  aphdailySSTplot <- ggplot(data=month.max, 
+                         aes(x=Month, y=Temperature, 
+                            group=as.factor(Year), 
+                            color = as.integer(Year)))  +
+                 geom_point() + 
+                 geom_smooth(method = "loess", se = FALSE) 
+                 
+aphdailySSTplot + labs(y = "Daily SST", x = "Day") + ggtitle("Aphrodite Point") 
+
+dev.off()
+# boxplot
+boxplot(Temperature~Year, data = month.max, 
+        ylab = "Monthly Max SST", xlab = "Year")
+
+
+recruitmonths.daily <- month.max[month.max$Month == 5 |
+                           month.max$Month == 6 | 
+                           month.max$Month == 7,]
+boxplot(Temperature~Year, data = recruitmonths.daily, 
+        ylab = "Monthly Max SST", xlab = "Year")
+plot(Temperature~Date, data = aphdaily2004, type = "l")
+```
+
+two panel plot
+```{r}
+par(mfrow = c(1,2))
+
+boxplot(SST~year, data = recruitmonths, 
+          ylab = "Monthly Mean SST", xlab = "Year")
+
+boxplot(Temperature~Year, data = recruitmonths.daily, 
+        ylab = "Monthly Max SST", xlab = "Year")
+text("Aphrodite Point Mean and Max Monthly SST/n for Recruitment Months (May, June & July)", side = 3, outer = TRUE, cex = 1.3)
+
+par(mfrow = c(1,2))
+plot(Temperature~Date, data = month.max, ylim = c(7, 17), type = "l", main = "Monthly Max Temperature")
+plot(Temperature~Date, data = month.mean, type = "l", ylim = c(7,17), main = "Monthly Mean Temperature")
+
+```
+
+
+##Katie's Data
+### six sampling sites
+```{r}
+## Import data
+  tempSampSitesOrg <- read.csv("/Users/saraschaal/Documents/Northeastern/LotterhosLab/Research/Field Work/2015/TPC_Experiment/TempData_site_Species.csv")
+
+## Subsetting 
+  # for columns of interest
+  tempSampSitesOrg <- subset(tempSampSitesOrg, select = c(ActualDate, Site, Temperature))
+  # Subset for only those values over 0 (zeros added when temperatures weren't taken)
+  tempSampSitesNoZeros <- tempSampSitesOrg[tempSampSitesOrg$Temperature > 0,]
+  # Remove rows with any NAs
+  tempSampSites <- na.omit(tempSampSitesNoZeros)
+   
+## Data manipulation 
+  # Convert date column to date format and extract year for new column
+  tempSampSites$Date <- as.Date(tempSampSites$ActualDate, "%m/%d/%Y")
+  tempSampSites$Year <- substring(as.character(tempSampSites$Date),1,4)
+  tempSampSites$Month <- as.numeric(substring(as.character(tempSampSites$Date),6,7))
+  
+  # Convert number months to names
+  tempSampSites$MonthName <- NA
+  for(i in 1:nrow(tempSampSites)){
+    if(tempSampSites$Month[i] == 6){
+      tempSampSites$MonthName[i] <- "June"
+    } else if(tempSampSites$Month[i] == 7){
+      tempSampSites$MonthName[i] <- "July"
+    } else if(tempSampSites$Month[i] == 8){
+      tempSampSites$MonthName[i] <- "August"
+    } else if(tempSampSites$Month[i] == 5){
+      tempSampSites$MonthName[i] <- "May"
+    } else {
+      tempSampSites$MonthName[i] <- NA
+    }
+  }
+  
+  # Convert data into the same scale some years Fahrenheit was taken others Celcius
+  for(i in 1:nrow(tempSampSites)){
+    if(tempSampSites$Temperature[i] > 40){
+      tempSampSites$Temperature[i] <- (tempSampSites$Temperature[i]-32)*(5/9)
+    } else {
+      tempSampSites$Temperature[i] <- tempSampSites$Temperature[i]
+    }
+  } 
+  
+  # Subset the data for only sites I sampled
+  tempSampSitesSixSites <- tempSampSites[tempSampSites$Site == "Bluestone" |
+                                         tempSampSites$Site == "Blowhole" |
+                                         tempSampSites$Site == "Execution" |
+                                         tempSampSites$Site == "Nudibranch" |
+                                         tempSampSites$Site == "Prasiola", ]
+# Set standard error function
+  SE <- function(x){
+    sd(x)/sqrt(length(x))
+  }
+  
+  meanTempKaties <- aggregate(Temperature~Date, data = tempSampSites, FUN = mean)
+  confidMeanTempKaties <- aggregate(Temperature~Date, data = tempSampSites, FUN = SE)
+  meanTempKaties$upp <- meanTempKaties$Temperature + confidMeanTempKaties$Temperature
+  meanTempKaties$lowr <- meanTempKaties$Temperature - confidMeanTempKaties$Temperature
+  maxTempKaties <- aggregate(Temperature~Date, data = tempSampSites, FUN = max)
+  
+## Plotting
+  # Plot all sites with data
+  plot(Temperature~Date, data = meanTempKaties, type = "l")
+  points(upp~Date, data = meanTempKaties, type = "l", col = "grey")
+  points(lowr~Date, data = meanTempKaties, type = "l", col = "grey")
+  
+  # Plot 6 Sampling Sites
+  site.temp <- ggplot(data=tempSampSites, aes(x=Month, y=Temperature, 
+                            group=as.factor(Year), 
+                            color = as.factor(Year)))  +
+                 geom_point() + 
+                 geom_smooth(method = "loess", se = FALSE)
+  site.temp
+
+  
+  par(mfrow = c(2,2))
+  par(oma = c(4, 4, 2, 1))
+  par(mar = c(2, 2, 1, 1))
+ 
+  tempSampSites$Year <- as.factor(tempSampSites$Year)
+  
+  boxplot(Temperature~Year, data = tempSampSites[tempSampSites$Month == 5,], 
+          ylim = c(10, 21))
+  text(1, 20, label = "May", cex = 1.5)
+  boxplot(Temperature~Year, data = tempSampSites[tempSampSites$Month == 6,], 
+          ylim = c(10, 21))
+  text(1.1, 20, label = "June", cex = 1.5)
+  boxplot(Temperature~Year, data = tempSampSites[tempSampSites$Month == 7,], 
+          ylim = c(10, 21))
+  text(1.1, 20, label = "July", cex = 1.5)
+  boxplot(Temperature~Year, data = tempSampSites[tempSampSites$Month == 8,],
+          ylim = c(10, 21))
+  text(1.4, 20, label = "August", cex = 1.5)
+
+  mtext("Year", side = 1, outer = TRUE, cex = 1.2, line = 2.2)
+  mtext("Temperature", side = 2, outer = TRUE, cex = 1.2, line = 2.2)
+  mtext("Data from 6 Sampling Sites", side = 3, outer = TRUE, cex = 1.4)
+```
+
+
+```{r}
+
+
+
+```
