@@ -868,7 +868,7 @@ par(mfrow = c(1,2))
  # Plot Mortality in Less than 18C Treatments for All Species
   plot(blkL18~days, data = all.mort.data, ylim = c(0,1.1), type = "l", col = "black", lwd = 3, 
        ylab = "Proportion of Fish Alive", xlab = "Day", bty = "l", 
-       main = "Mortality in < 18C Treatments")
+       main = "Mortality in <= 18C Treatments")
     points(qbL18~days, data = all.mort.data, type = "l", col = "brown", lwd = 3)
     points(cpL18~days, data = all.mort.data, type = "l", col = "orange", lwd = 3)
     lines(yltL18~days, data = all.mort.data, lty = 2, col = "goldenrod", lwd = 3)

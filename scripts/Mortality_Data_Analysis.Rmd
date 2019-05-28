@@ -1,0 +1,280 @@
+---
+title: "Mortality Data Analysis"
+author: "Sara Michele Schaal"
+date: "5/9/2019"
+output: html_document
+---
+
+## Load Relevant Packages
+```{r}
+    if(!("AICcmodavg" %in% installed.packages())){
+      install.packages("AICcmodavg")
+    }
+    if(!("car" %in% installed.packages())){
+      install.packages("car")
+    }
+    if(!("multcomp" %in% installed.packages())){
+      install.packages("multcomp")
+    }
+    if(!("lsmeans" %in% installed.packages())){
+      install.packages("lsmeans")
+    }
+    if(!("multcompView" %in% installed.packages())){
+      install.packages("multcompView")
+    }
+
+  library(AICcmodavg)
+  library(car)
+  library(multcomp)
+  library(lsmeans)
+  library(multcompView)
+```
+
+## Data Manipulation
+```{r}
+## Read In Data ##
+  mort.data <- read.csv("./data/Mortality.csv")
+  # round temperature data
+  mort.data$Treatment_Temperature <- round(mort.data$Treatment_Temperature, digits = 1)
+  # remove those that could not be identified to the species level 
+  mort.data <- mort.data[!mort.data$Species == "" & !mort.data$Species == "Hybrid",]
+  # calculate days dead and survived
+  mort.data$DaysDead <- 14-mort.data$Days_Survived
+  mort.data$PropDaysSurv <- mort.data$Days_Survived/14
+  
+
+## Combine Black and Yellowtail Data ##
+  # Make a new species column that combines black and yellowtail rockfish
+  mort.data$Species2 <- NA
+    
+  # Find all rows where species is either black or yellowtail and add BY to new species column
+  for(i in 1:nrow(mort.data)){
+    if(mort.data$Species[i] == "Black" | mort.data$Species[i] == "Yellowtail"){
+      mort.data$Species2[i] <- "BY"
+    } else {
+      mort.data$Species2[i] <- mort.data$Species[i]
+    }
+  }
+  # Factor new species column
+  mort.data$Species2 <- as.factor(mort.data$Species2)
+  # Set levels to meaningful names
+  levels(mort.data$Species2) <- c("Copper", "Quillback", "BY")
+  
+  
+#### Combine Quillback and Copper ####
+  # Make a new species column that combines black and yellowtail rockfish
+  mort.data$Species3 <- NA
+    
+  # Find all rows where species is either black or yellowtail and add BY to new species column
+  for(i in 1:nrow(mort.data)){
+    if(mort.data$Species2[i] == "Copper" | mort.data$Species2[i] == "Quillback"){
+      mort.data$Species3[i] <- "CQ"
+    } else {
+      mort.data$Species3[i] <- mort.data$Species2[i]
+    }
+  }
+  # Factor new species column
+  mort.data$Species3 <- as.factor(mort.data$Species3)
+  # Change factor level names
+  levels(mort.data$Species3) <- c("BY", "CQ") 
+```
+
+# Analyses
+### Binomial - Temperature by Species
+```{r}
+################################
+#### Complex Level Analysis ####
+################################
+ ## Logistic regression with interaction of temp and species where complexes are combined 
+  log.mod.all.complex <- glm(cbind(Days_Survived, DaysDead)~Treatment_Temperature*Species3,
+                           family = binomial(link = 'logit'), data = mort.data)
+  summary(log.mod.all.complex)
+  Anova(log.mod.all.complex, type = 2)
+  ## Use capital Anova for sums of squares that equals Type II sums of squares where 
+  ## the SS are calculated for the main effects but not the interaction and should 
+  ## only be used when there is not a significant interaction statistically more 
+  ## powerful then Type III
+  
+ ## Check Assumptions ##
+  # Dispersion
+  var(mort.data$DaysDead) # 9.71
+  mean(mort.data$DaysDead) # 1.72
+  # Data are overdispersed
+  
+  # Diagnostic plots for outliers and intercorrelation
+  par(mfrow = c(2,2))
+  plot(log.mod.all.complex)
+  # variance is not equal across data points (scale-location plot) change to quasibinomial
+  
+  # Autocorrelation
+  par(mfrow = c(1,1))
+  acf(log.mod.all.complex$residuals)
+  # no autocorrelation  
+  
+## Switch to quasibinomial to relax data assumptions
+  ## (this will produce conservative p-values if you have overdispersion)
+  
+ ## Logistic regression with interaction of temp and species where complexes are combined 
+  quasi.mod.all.complex <- glm(cbind(Days_Survived, DaysDead)~Treatment_Temperature*Species3,
+                           family = quasibinomial(link = 'logit'), data = mort.data)
+  summary(quasi.mod.all.complex)
+  Anova(quasi.mod.all.complex, type = 2)
+  
+  # Significant interaction but check likelihood ratio test to ensure best model
+  quasi.mod.all.complex2 <- glm(cbind(Days_Survived, DaysDead)~Treatment_Temperature+Species3,
+                           family = quasibinomial(link = 'logit'), data = mort.data)
+  anova(quasi.mod.all.complex, quasi.mod.all.complex2, test = "LRT")
+  ## Model 1 with interaction is the best model
+  
+###################################
+#### Species in a Single Model ####
+###################################
+### All Four Species ##############
+## Logistic regression for the interaction between temperature and species on survival
+  log.mod.all.prop <- glm(cbind(Days_Survived, DaysDead)~Treatment_Temperature*Species, 
+                            family = quasibinomial(link = 'logit'), data = mort.data)
+  summary(log.mod.all.prop)
+  summary(aov(log.mod.all.prop))
+  drop1(log.mod.all.prop)
+  # Best Model
+  # Giving warning because of the Yellowtail data. 
+  # Its because the "link" score is very large. 
+  # We have overfit our data.
+
+#####################
+#### BY Combined ####
+#####################
+ ## Logistic regression with interaction of temp and species where BY combined 
+  quasiModel1 <- glm(cbind(Days_Survived, DaysDead)~Treatment_Temperature*Species2, 
+              family = quasibinomial(link = "logit"),
+              data = mort.data)
+  summary(quasiModel1)
+  Anova(quasiModel1, type = 2) 
+  # Interaction is not significant check LRT
+
+  # dropping interaction term
+  quasiModel2 <- glm(cbind(Days_Survived, DaysDead)~Treatment_Temperature + Species2, 
+              family = quasibinomial(link = "logit"),
+              data = mort.data)
+  anova(quasiModel1, quasiModel2,  test = "LRT")
+  # Can drop the interaction term due to nonsignificant LRT
+  Anova(quasiModel2, type = 2)
+  summary(quasiModel2)
+  
+  # run least-squares means to identify which species are different
+  multcompar <- lsmeans(quasiModel2, pairwise ~ Species2, adjust = "Tukey")
+  summary(multcompar)
+```
+
+# Plotting
+### Proportion days survived across temperature - Complex level
+### (4 panel plot)
+```{r}
+###################################################
+#### Create Prediction for Logistic Regression ####
+###################################################
+
+  BY.pred <- predict(quasi.mod.all.complex, data.frame(Treatment_Temperature = 10:23, 
+                                                     Species3 = "BY"), se.fit = TRUE)
+  CQ.pred <- predict(quasi.mod.all.complex, data.frame(Treatment_Temperature = 10:23, 
+                                                     Species3 = "CQ"), se.fit = TRUE)
+  Quill.pred <- predict(quasiModel2, data.frame(Treatment_Temperature = 10:23, 
+                                                Species2 = "Quillback"), se.fit = TRUE)
+  Copper.pred <- predict(quasiModel2, data.frame(Treatment_Temperature = 10:23, 
+                                                     Species2 = "Copper"), se.fit = TRUE)
+
+##############
+#### Plot ####
+##############
+  
+# set the plotting window - 4 panels  
+  par(mfrow = c(2,2))
+  par(oma = c(4, 4, 1, 1))
+  par(mar = c(2, 2, 1, 1))
+  
+############################
+#### BY Complex Panel A ####
+############################
+  
+  plot(mort.data$PropDaysSurv[mort.data$Species == "Black"] ~
+       mort.data$Treatment_Temperature[mort.data$Species == "Black"], 
+       xlim = c(10,23), col = "black", pch = 19, bty = "l", 
+       ylim = c(0,1), xaxt = "n")
+  points(mort.data$PropDaysSurv[mort.data$Species == "Yellowtail"] ~ 
+         mort.data$Treatment_Temperature[mort.data$Species == "Yellowtail"], 
+          pch = 19, col = "black")
+  points(y=exp(BY.pred$fit)/(1+exp(BY.pred$fit)), x = 10:23,
+         type = "l")
+  points(y = exp(BY.pred$fit+1.96*BY.pred$se.fit)/
+           (1+exp(BY.pred$fit+1.96*BY.pred$se.fit)), 
+           x = 10:23, type = "l", col = "lightgrey")
+  points(y = exp(BY.pred$fit-1.96*BY.pred$se.fit)/
+             (1+exp(BY.pred$fit-1.96*BY.pred$se.fit)), 
+           x = 10:23, type = "l", col = "lightgrey")
+  legend("bottomleft", legend = "BY Complex", pch = 19, 
+         col = "black",  cex = 0.8)
+  mtext(text = "A", side = 3, adj = 0.01, padj = 0.01)
+  
+########################  
+#### Copper Panel C ####
+########################
+  
+  plot(PropDaysSurv[mort.data$Species=="Copper"]~
+         Treatment_Temperature[mort.data$Species=="Copper"], 
+       data = mort.data, pch = 15, col = "darkorange2", yaxt = "n",
+       bty = "l", ylim = c(0,1), xlim = c(10,23), xaxt = "n")
+  points(y=exp(Copper.pred$fit)/(1+exp(Copper.pred$fit)), x = 10:23,
+         type = "l")
+  points(y = exp(Copper.pred$fit-1.96*(Copper.pred$se.fit))/
+              (1+exp(Copper.pred$fit-1.96*Copper.pred$se.fit)), 
+         x = 10:23, type = "l", col = "lightgrey")
+  points(y = exp(Copper.pred$fit+1.96*(Copper.pred$se.fit))/
+              (1+exp(Copper.pred$fit+1.96*Copper.pred$se.fit)), 
+         x = 10:23, type = "l", col = "lightgrey")
+  legend("bottomleft", legend = "Copper", pch = 15, col = "darkorange2", cex = 0.8)
+  mtext(text = "C", side = 3, adj = 0.01, padj = 0.01)
+
+############################
+#### CQ complex Panel B ####
+############################
+  
+  plot(mort.data$PropDaysSurv[mort.data$Species == "Copper"] ~
+       mort.data$Treatment_Temperature[mort.data$Species == "Copper"], 
+       col = "orange", xlim = c(10,23), xlab = "",
+       pch = 19, bty = "l", ylim = c(0,1), ylab = "")
+  points(mort.data$PropDaysSurv[mort.data$Species == "Quillback"] ~ 
+         mort.data$Treatment_Temperature[mort.data$Species == "Quillback"], 
+         col = "orange", pch = 19)
+  points(y=exp(CQ.pred$fit)/(1+exp(CQ.pred$fit)), x = 10:23,
+         type = "l")
+  points(y = exp(CQ.pred$fit+1.96*CQ.pred$se.fit)/
+           (1+exp(CQ.pred$fit+1.96*CQ.pred$se.fit)), 
+           x = 10:23, type = "l", col = "lightgrey")
+  points(y = exp(CQ.pred$fit-1.96*CQ.pred$se.fit)/
+             (1+exp(CQ.pred$fit-1.96*CQ.pred$se.fit)), 
+           x = 10:23, type = "l", col = "lightgrey")
+  legend("bottomleft", legend = "CQ Complex", pch = 19, 
+         col = "orange", cex = 0.8)
+  mtext(text = "B", side = 3, adj = 0.01, padj = 0.01)
+
+###########################
+#### Quillback Panel D ####
+###########################
+  
+  plot(PropDaysSurv[mort.data$Species=="Quillback"]~
+         Treatment_Temperature[mort.data$Species=="Quillback"], 
+       data = mort.data, pch = 17, col = "brown", yaxt = "n",
+       bty = "l", ylim = c(0,1), xlim = c(10,23), xlab = "", ylab = "")
+  points(y=exp(Quill.pred$fit)/(1+exp(Quill.pred$fit)), x = 10:23, type = "l")
+  points(y = exp(Quill.pred$fit+1.96*Quill.pred$se.fit)/
+           (1+exp(Quill.pred$fit+1.96*Quill.pred$se.fit)), 
+           x = 10:23, type = "l", col = "lightgrey")
+  points(y = exp(Quill.pred$fit-1.96*Quill.pred$se.fit)/
+             (1+exp(Quill.pred$fit-1.96*Quill.pred$se.fit)), 
+           x = 10:23, type = "l", col = "lightgrey")
+  legend("bottomleft", legend = "Quillback", pch = 17, col = "brown", cex = 0.8)
+  mtext(text = "D", side = 3, adj = 0.01, padj = 0.01)
+  mtext("Proportion of Days Survived", side = 2, outer = TRUE, cex = 1, line = 2.2)
+  mtext(expression(paste('Treatment Temperature (',degree,'C)',sep='')), side = 1, 
+        outer = TRUE, cex = 1, line = 2.2)
+```

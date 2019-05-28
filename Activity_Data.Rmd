@@ -7,12 +7,8 @@ output:
   pdf_document: default
 ---
 
+## Load Relevant Packages
 ```{r, echo=FALSE}
-
-#######################
-#### Load Packages ####
-#######################
-
     if(!("plyr" %in% installed.packages())){
       install.packages("plyr")
     }
@@ -25,10 +21,18 @@ output:
     if(!("scales" %in% installed.packages())){
       install.packages("scales")
     }
+    if(!("sm" %in% installed.packages())){
+      install.packages("sm")
+    }
+    if(!("ggpubr" %in% installed.packages())){
+      install.packages("ggpubr")
+    }
     library(plyr)
     library(dplyr)
     library(ggplot2)
     library(scales)
+    library(ggpubr)
+    library(sm)
     
 ```
 
@@ -36,22 +40,22 @@ output:
 ## Read in data and calculate means
 ```{r}
 
-# Read in data files
+## Read in data ##
   full.act <- read.csv("data/Activity/20171129_ActivityData.csv")
   black.temps <- read.csv("data/black_exp_temps.csv")
   copper.temps <- read.csv("data/copper_exp_temps.csv")
 
-# Subset data into two experiments  
+  # Subset data into two experiments  
   black.act <- full.act[full.act$Species == "Black", ]
   copper.act <- full.act[full.act$Species == "Copper", ]
   
-# Reorder data to be in numerical ascending order 
+  # Reorder data to be in numerical ascending order 
   # **(only way for loop to work properly)
   black.temps.asc <- black.temps[order(black.temps$Bucket), ]
   copper.temps.asc <- copper.temps[order(copper.temps$Bucket_ID), ]
   
-# Fill in actual mean temperature data from experiment
-  #black
+  # Fill in actual mean temperature data from experiment
+  # BY complex
   for(i in 1:16){
     for(j in 1:nrow(black.act)){
       if(black.act$Bucket[j] == i){
@@ -60,7 +64,7 @@ output:
     }
   }
   
-  #copper
+  # CQ complex
   for(i in 1:16){
     for(j in 1:nrow(copper.act)){
       if(copper.act$Bucket[j] == i){
@@ -71,10 +75,10 @@ output:
 
   
   # take the mean of the two watches of the same fish per viewer
-    black.act$Act_Mean_Julia <- rowMeans(black.act[, 8:9])
-    black.act$Act_Mean_Sandi <- rowMeans(black.act[, 10:11])
-    copper.act$Act_Mean_Julia <- rowMeans(copper.act[,8:9])
-    copper.act$Act_Mean_Sandi <- rowMeans(copper.act[,10:11])
+  black.act$Act_Mean_Julia <- rowMeans(black.act[, 8:9])
+  black.act$Act_Mean_Sandi <- rowMeans(black.act[, 10:11])
+  copper.act$Act_Mean_Julia <- rowMeans(copper.act[,8:9])
+  copper.act$Act_Mean_Sandi <- rowMeans(copper.act[,10:11])
   
 ``` 
 
@@ -976,14 +980,77 @@ str(complete.act.data)
     summary(species.act.m1)
     summary(aov(species.act.m1))
     
- ## Test Assumptions  
+    hist(full.act.data$mean.both)
+   
+## Test Assumptions  
   # Autocorrelation: Because this is a repeated measures 
   acf(species.act.m1$residuals) # No autocorrelation
+  par(mfrow = c(2,2))
+  plot(species.act.m1)
+  qqnorm(species.act.m1$residuals)
+  qqline(species.act.m1$residuals)
+  hist(species.act.m1$residuals)
+  shapiro.test(species.act.m1$residuals)
+  blk <- full.act.data[full.act.data$species == "Black", ]
+  hist(blk$mean.both)
+  cp <- full.act.data[full.act.data$species == "Copper", ]
+  hist(cp$mean.both)
 
+# Log 10 - Does not improve
+  species.act.m1Log <- lm(log10(full.act.data$mean.both + 10) ~
+                         full.act.data$Temperature*as.numeric(full.act.data$DateTimePOS)*full.act.data$species)
+  summary(species.act.m1Log)
+  summary(aov(species.act.m1Log))
+  
+  # Assumptions
+  par(mfrow = c(2,2))
+  plot(species.act.m1Log)
+  par(mfrow = c(1,1))
+  qqnorm(species.act.m1Log$residuals)
+  qqline(species.act.m1Log$residuals)
+  hist(species.act.m1Log$residuals)
+  shapiro.test(species.act.m1Log$residuals)
+  
+## Square Root - Makes it way worse
+  species.act.m1SR <- lm(sqrt(full.act.data$mean.both) ~
+                         full.act.data$Temperature*as.numeric(full.act.data$DateTimePOS)*full.act.data$species)
+  summary(species.act.m1SR)
+  summary(aov(species.act.m1SR))
+  
+  # Assumptions
+  par(mfrow = c(2,2))
+  plot(species.act.m1SR)
+  par(mfrow = c(1,1))
+  qqnorm(species.act.m1SR$residuals)
+  qqline(species.act.m1SR$residuals)
+  hist(species.act.m1SR$residuals)
+  shapiro.test(species.act.m1SR$residuals)
+  
+## Square
+  species.act.m1SQ <- lm((full.act.data$mean.both)^2 ~
+                         full.act.data$Temperature*as.numeric(full.act.data$DateTimePOS)*full.act.data$species)
+  summary(species.act.m1SQ)
+  summary(aov(species.act.m1SQ))
+  
+  # Assumptions
+  par(mfrow = c(2,2))
+  plot(species.act.m1SQ)
+  par(mfrow = c(1,1))
+  qqnorm(species.act.m1SQ$residuals)
+  qqline(species.act.m1SQ$residuals)
+  hist(species.act.m1SQ$residuals)
+  shapiro.test(species.act.m1SQ$residuals)
+  
+  
+ 
 ### Second Model Set: Time*Species & Temp*Species
-  species.act.m2 <- lm(full.act.data$mean.both~as.numeric(full.act.data$DateTimePOS)*full.act.data$species)
+  species.act.m2 <- lm((full.act.data$mean.both)^2~as.numeric(full.act.data$DateTimePOS)*full.act.data$species)
   summary(species.act.m2)
   summary(aov(species.act.m2))
+  par(mfrow = c(2,2))
+  plot(species.act.m2)
+  hist(species.act.m2$residuals)
+  shapiro.test(species.act.m2$residuals)
   
   species.act.m3 <- lm(full.act.data$mean.both~full.act.data$Temperature*full.act.data$species)
   summary(species.act.m3)
@@ -1003,7 +1070,7 @@ str(complete.act.data)
   drop1(blk.act.m2)
   
  ## Copper Rockfish
-  cop.act.m1 <- lm(complete.act.data.cp$mean.both~complete.act.data.cp$Temperature + 
+  cp.act.m1 <- lm(complete.act.data.cp$mean.both~complete.act.data.cp$Temperature + 
                      as.numeric(complete.act.data.cp$DateTimePOS) + 
                      complete.act.data.cp$Temperature*as.numeric(complete.act.data.cp$DateTimePOS))
   summary(aov(cop.act.m1))
@@ -1012,3 +1079,205 @@ str(complete.act.data)
 
 ```
 
+
+## Monte Carlo
+```{r}
+
+
+####################
+#### Full Model ####
+####################
+alpha <- 0.05  # for 95% confidence interval
+bootstrap <- 999
+new_act <- numeric(length(bootstrap))
+fvalues <- matrix(nrow = 999, ncol = 7)
+colnames(fvalues) <- c("Temp", "Time", "Species", "Temp*Time", "Temp*Species", "Time*Species", "Temp*Time*Species")
+
+for(i in 1:bootstrap){
+  #new_y <- sample(full.act.data$mean.both, replace = TRUE)
+  new_act <- lm(sample(full.act.data$mean.both) ~ sample(full.act.data$Temperature)*sample(as.numeric(full.act.data$DateTimePOS))*sample(full.act.data$species))
+  fvalues[i,] <- summary(aov(new_act))[[1]][["F value"]][1:7]
+}
+
+fvalues <- as.data.frame(fvalues)
+fval.means <- colMeans(fvalues)
+lowCI <- numeric(length(ncol(fvalues)))
+upCI <- numeric(length(ncol(fvalues)))
+for(i in 1:ncol(fvalues)){
+  lowCI[i] <- quantile(fvalues[,i], alpha/2, type = 1)
+  upCI[i] <- quantile(fvalues[,i], 1-alpha/2, type = 1)
+}
+
+mont.carloData <- cbind(fval.means, lowCI, upCI, summary(aov(species.act.m1))[[1]][["F value"]][1:7])
+mont.carloData
+
+##########################
+#### BY Complex Model ####
+##########################
+alpha <- 0.05  # for 95% confidence interval
+bootstrap <- 999
+new_act.by <- numeric(length(bootstrap))
+fvalues.by <- matrix(nrow = 999, ncol = 7)
+colnames(fvalues.by) <- c("Temp", "Time", "Species", "Temp*Time", "Temp*Species", "Time*Species", "Temp*Time*Species")
+
+for(i in 1:bootstrap){
+  #new_y <- sample(full.act.data$mean.both, replace = TRUE)
+  new_act.by <- lm(sample(complete.act.data$mean.both)~sample(complete.act.data$Temperature) + 
+                     sample(as.numeric(complete.act.data$DateTimePOS)) + 
+                     sample(complete.act.data$Temperature*as.numeric(complete.act.data$DateTimePOS)))
+  fvalues.by[i,] <- summary(aov(new_act.by))[[1]][["F value"]][1:7]
+}
+
+fvalues.by <- as.data.frame(fvalues.by)
+fval.means.by <- colMeans(fvalues.by)
+lowCI.by <- numeric(length(ncol(fvalues.by)))
+upCI.by <- numeric(length(ncol(fvalues.by)))
+for(i in 1:ncol(fvalues.by)){
+  lowCI.by[i] <- quantile(fvalues.by[,i], alpha/2, type = 1)
+  upCI.by[i] <- quantile(fvalues.by[,i], 1-alpha/2, type = 1)
+}
+
+mont.carloData.by <- cbind(fval.means.by, lowCI.by, upCI.by, summary(aov(blk.act.m1))[[1]][["F value"]][1:3])
+mont.carloData.by
+
+##########################
+#### CQ Complex Model ####
+##########################
+alpha <- 0.001  # for 95% confidence interval
+bootstrap <- 999
+new_act.cq <- numeric(length(bootstrap))
+fvalues.cq <- matrix(nrow = 999, ncol = 3)
+colnames(fvalues.cq) <- c("Temp", "Time","Temp*Time")
+
+for(i in 1:bootstrap){
+  #new_y <- sample(full.act.data$mean.both, replace = TRUE)
+  new_act.cq <- lm(sample(complete.act.data.cp$mean.both)~sample(complete.act.data.cp$Temperature) + 
+                     sample(as.numeric(complete.act.data.cp$DateTimePOS)) + 
+                     sample(complete.act.data.cp$Temperature*as.numeric(complete.act.data.cp$DateTimePOS)))
+  fvalues.cq[i,] <- summary(aov(new_act.cq))[[1]][["F value"]][1:3]
+}
+
+fvalues.cq <- as.data.frame(fvalues.cq)
+fval.means.cq <- colMeans(fvalues.cq)
+lowCI.cq <- numeric(length(ncol(fvalues.cq)))
+upCI.cq <- numeric(length(ncol(fvalues.cq)))
+for(i in 1:ncol(fvalues.cq)){
+  lowCI.cq[i] <- quantile(fvalues.cq[,i], alpha/2, type = 1)
+  upCI.cq[i] <- quantile(fvalues.cq[,i], 1-alpha/2, type = 1)
+}
+
+mont.carloData.cq <- cbind(fval.means.cq, lowCI.cq, upCI.cq, summary(aov(cp.act.m1))[[1]][["F value"]][1:3])
+mont.carloData.cq
+```
+
+## Plots to understand interactions
+```{r}
+##################################################
+#### Temperature by Species 2-Way Interaction ####
+##################################################
+
+  plot(full.act.data$mean.both[full.act.data$species == "Black"]~
+           full.act.data$Temperature[full.act.data$species == "Black"],
+       pch = 19, col = "black")
+  abline(lm(full.act.data$mean.both[full.act.data$species == "Black"]~
+              full.act.data$Temperature[full.act.data$species == "Black"]),
+         lwd = 3)
+  legend("bottomleft", legend = "BY Complex", pch = 19, cex = 0.8)
+  mtext(text = "A", side = 3, adj = 0.01, padj = 0.01)
+  plot(full.act.data$mean.both[full.act.data$species == "Copper"]~
+         full.act.data$Temperature[full.act.data$species == "Copper"], 
+       pch = 19, col = "orange")
+  abline(lm(full.act.data$mean.both[full.act.data$species == "Copper"]~
+              full.act.data$Temperature[full.act.data$species == "Copper"]), 
+         col = "orange", lwd = 3)
+  legend("bottomleft", legend = "CQ Complex", pch = 19, 
+         col = "orange", cex = 0.8)
+  mtext(text = "B", side = 3, adj = 0.01, padj = 0.01)
+  mtext("Mean Activity", side = 2, outer = TRUE, cex = 1, line = 2.2)
+  mtext(expression(paste('Treatment Temperature (',degree,'C)',sep='')), side = 1, 
+        outer = TRUE, cex = 1, line = 2.2)
+
+###########################################
+#### Time by Species 2-Way Interaction ####
+###########################################
+  BY.time <- lm(full.act.data$mean.both[full.act.data$species == "Black"]~
+              as.numeric(full.act.data$DateTimePOS[full.act.data$species == "Black"]))
+  summary(BY.time)
+  CQ.time <- lm(full.act.data$mean.both[full.act.data$species == "Copper"]~
+              as.numeric(full.act.data$DateTimePOS[full.act.data$species == "Copper"]))
+  summary(CQ.time)
+  
+ plot(full.act.data$mean.both[full.act.data$species == "Black"]~
+           as.numeric(full.act.data$DateTimePOS[full.act.data$species == "Black"]),
+       pch = 19, col = "black", xaxt = "n")
+ abline(BY.time, lwd = 3)
+ axis(1, at = c(1435200000, 1435400000, 1435600000, 1435800000), 
+      labels = c("Day 5", "Day 7", "Day 10", "Day 13"))
+ #legend("bottomleft", legend = "BY Complex", pch = 19, cex = 0.8)
+  mtext(text = "A", side = 3, adj = 0.01, padj = 0.01)
+ plot(full.act.data$mean.both[full.act.data$species == "Copper"]~
+           as.numeric(full.act.data$DateTimePOS[full.act.data$species == "Copper"]),
+       pch = 19, col = "orange", xaxt = "n")
+ axis(1, at = c(1436600000, 1436800000, 1437000000, 1437200000), 
+      labels = c("Day 5", "Day 7", "Day 10", "Day 13"))
+ abline(CQ.time,lwd = 3, col = "orange")
+ #legend("bottomleft", legend = "CQ Complex", pch = 19, cex = 0.8, col = "orange")
+  mtext(text = "B", side = 3, adj = 0.01, padj = 0.01)
+  mtext("Mean Activity", side = 2, outer = TRUE, cex = 1, line = 2.2)
+  mtext("Time", side = 1, outer = TRUE, cex = 1, line = 2.2)
+  
+#############################
+#### Time by Temperature ####
+#############################
+  
+```
+
+```{r}
+## sm ANCOVA or fANCOVA: try and see what it shows to help account for the non-linearity in our residuals
+ 
+   x <- cbind(as.numeric(full.act.data$DateTimePOS), full.act.data$Temperature)
+  ## sm ANCOVA
+  ### Bowman and Azzalini Applied Smoothing Techniques for Data Analysis: 
+  ## The Kernel Approach with S-Plus Illustrations
+   ## This essentially compares the curves of each group and tests the null that they are the same 
+   ## Does smoothing actually account for the normality assumption
+  sm.ancova(x, full.act.data$mean.both, full.act.data$species, model = "parallel")
+
+ ## fANCOVA
+ ## Can apply a loess smoothing nonparametric analysis loess.ancova which uses a loess smoother
+  loess.ancova(x, full.act.data$mean.both, full.act.data$species)
+ 
+```
+
+## Quades Method - Quade, D. (1967). Rank analysis of covariance. Journal of the American Statistical Association, 62(320), 1187-1200. 
+```{r}
+
+# Transform the CYL and MPG to Ranks
+mtcars$cylRank <- rank(mtcars$cyl)
+mtcars$mpgRank <- rank(mtcars$mpg)
+
+# Convert to Ranks to Deviation Scores
+mtcars$cylDev <- mtcars$cylRank - mean(mtcars$cylRank )
+mtcars$mpgDev <- mtcars$mpgRank - mean(mtcars$mpgRank )
+
+# Spearman Correlation
+cor.1 <- with(mtcars, cor(mpgRank , cylRank , method="spearman"))
+
+# Deviation Rank of MPG is Predicted from the Deviation Rank of CYL
+mtcars$est.mpg <- mtcars$cylDev * cor.1
+
+# Predicted Deviation Rank of MPG is Subtracted from the Observed Deviation Rank of CYL
+mtcars$mpg.resid <- mtcars$est.mpg - mtcars$mpgDev
+
+# ANOVA on the Residual Deviation Rank Scores
+summary(aov(mpg.resid ~ am, mtcars))
+
+
+# Transform Time and Temp and activity
+full.act.data$actRank <- rank(full.act.data$mean.both)
+full.act.data$tempRank <- rank(full.act.data$Temperature)
+full.act.data$timeRank <- rank(as.numeric(full.act.data$DateTimePOS))
+
+# Spearman Correlation
+
+```

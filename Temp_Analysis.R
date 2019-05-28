@@ -39,10 +39,10 @@
       levels(temp.df$Bucket_ID)
 
     # average temperatures measured by GAMMA and pH Meter and put values in new column
-      temp.df$mean <- rowMeans(subset(temp.df, select = c(Gamma, pH_Meter)), na.rm = TRUE)
+      temp.df$means <- rowMeans(subset(temp.df, select = c(Gamma, pH_Meter)), na.rm = TRUE)
 
     # get mean and standard deviation of bucket temps
-      summary.data <- select(temp.df, Bucket_ID, Temperature_Treatment, mean)
+      summary.data <- select(temp.df, Bucket_ID, Temperature_Treatment, means)
       melted.temp.data <- melt(summary.data, id.vars = c("Bucket_ID", "Temperature_Treatment"), 
                               na.rm = TRUE)
       summary.stats.black <- ddply(melted.temp.data, c("Bucket_ID", "Temperature_Treatment"), 
@@ -60,11 +60,11 @@
 
     # Turn data fram into a tbl_df to wrap text and calculate Mean of Gamma and pH Meter temps
       temp.df.cp <- tbl_df(temp.data.cp)
-      temp.df.cp$mean <- rowMeans(subset(temp.df.cp, select = c(Gamma, pH_Meter)), 
+      temp.df.cp$means <- rowMeans(subset(temp.df.cp, select = c(Gamma, pH_Meter)), 
                                   na.rm = TRUE)
 
     # Calculate summary statistics
-      summary.data.cp <- select(temp.df.cp, Bucket_ID, Temperature_Treatment, mean)
+      summary.data.cp <- select(temp.df.cp, Bucket_ID, Temperature_Treatment, means)
       melted.temp.data.cp <- melt(summary.data.cp, id.vars = c("Bucket_ID", "Temperature_Treatment"), 
                                   na.rm = TRUE)
       summary.stats.copper <- ddply(melted.temp.data.cp, c("Bucket_ID","Temperature_Treatment"), 
@@ -75,6 +75,42 @@
       all.treatment.buckets.cp <- summary.stats.copper[c(1:16),]
       write.csv(all.treatment.buckets.cp, "data/copper_exp_temps.csv", row.names = FALSE)
       
+    # Factor Temperature Treatment data  
+      temp.df$Temperature_Treatment <- as.factor(temp.df$Temperature_Treatment)
+      temp.df.cp$Temperature_Treatment <- as.factor(temp.df.cp$Temperature_Treatment)
+      
+ ## Boxplot of Bucket Temperatures ##
+      par(mfrow = c(2,1))
+      par(oma = c(4, 4, 1, 1))
+      par(mar = c(2, 2, 2, 1))
+      bp <- boxplot(means~Temperature_Treatment, data = temp.df, xlab = expression(paste('Treatment Temperature (',~degree,'C)',sep='')), 
+              ylab = expression(paste('Temperature Across Experiment (',~degree,'C)',sep='')))
+      text(12, 9, labels = "BY Complex Experiment")
+      mtext(text = "A", side = 3, adj = 0.01, padj = 0.01)
+      boxplot(means~Temperature_Treatment, data = temp.df.cp, xlab = expression(paste('Treatment Temperature (',~degree,'C)',sep='')), 
+              ylab = expression(paste('Temperature Across Experiment (',~degree,'C)',sep='')), col = "orange")
+      text(12, 9, labels = "CQ Complex Experiment")
+      mtext(text = "B", side = 3, adj = 0.01, padj = 0.01)
+      mtext(side = 2, outer = TRUE, cex = 1, line = 2.2, text = expression(paste('Temperature Across Experiment (',~degree,'C)',sep='')))
+      mtext(side = 1, outer = TRUE, cex = 1, line = 2.2, text = expression(paste('Treatment Temperature (',~degree,'C)',sep='')))
+     
+      
+  ## Violin Plots of Bucket Temperature ##     
+      Buck.temp.plot <- ggplot(temp.df, aes(x=Temperature_Treatment, y=means)) + 
+        geom_violin()
+      black.temp.plot <- Buck.temp.plot + stat_summary(fun.y=mean, geom="point", shape=19, size=1) + 
+        theme_bw() + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+                           panel.background = element_blank(), axis.line = element_line(colour = "black"))
+      
+      
+      Buck.temp.cp.plot <- ggplot(temp.df.cp, aes(x=Temperature_Treatment, y=means)) + 
+        geom_violin()
+      copper.temp.plot <- Buck.temp.cp.plot + stat_summary(fun.y=mean, geom="point", shape=19, size=1) + 
+        theme_bw() + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+                           panel.background = element_blank(), axis.line = element_line(colour = "black"))
+      
+      ggarrange(black.temp.plot, copper.temp.plot, nrow = 2)
+
 #### Growth Data ####
   
   # Load Data Frame

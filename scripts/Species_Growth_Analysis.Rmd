@@ -1,0 +1,216 @@
+---
+title: "Species Growth Analysis"
+author: "Sara Michele Schaal"
+date: "5/13/2019"
+output: html_document
+---
+
+## Data Manipulation
+```{r}
+## Read in Data ##
+  copper.data <- read.csv("./data/Copper_Weight.csv", header = TRUE)
+  black.data <- read.csv("./data/Black_Weight.csv", header = TRUE)
+
+## Set Buckets to Correct Experimental Temperature 
+  # CQ Complex
+  for (i in 1:nrow(copper.data)){
+    if(copper.data$Bucket[i] == 1){
+      copper.data$Bucket[i] <- replace(copper.data$Bucket[i], 1, 10.51111)
+    }else if(copper.data$Bucket[i] == 2){
+      copper.data$Bucket[i] <- replace(copper.data$Bucket[i], 1, 10.58704)
+   }else if(copper.data$Bucket[i] == 3){
+      copper.data$Bucket[i] <- replace(copper.data$Bucket[i], 1, 13.46111)
+    }else if(copper.data$Bucket[i] == 4){
+      copper.data$Bucket[i] <- replace(copper.data$Bucket[i], 1, 13.71667)
+    }else if(copper.data$Bucket[i] == 5){
+      copper.data$Bucket[i] <- replace(copper.data$Bucket[i], 1, 15.10000)
+    }else if(copper.data$Bucket[i] == 6){
+      copper.data$Bucket[i] <- replace(copper.data$Bucket[i], 1, 17.15000)
+    }else if(copper.data$Bucket[i] == 7){
+      copper.data$Bucket[i] <- replace(copper.data$Bucket[i], 1, 17.97037)
+    }else if(copper.data$Bucket[i] == 8){
+      copper.data$Bucket[i] <- replace(copper.data$Bucket[i], 1, 19.22222)
+    }else if(copper.data$Bucket[i] == 9){
+      copper.data$Bucket[i] <- replace(copper.data$Bucket[i], 1, 18.90926)
+    }else if(copper.data$Bucket[i] == 10){
+      copper.data$Bucket[i] <- replace(copper.data$Bucket[i], 1, 19.98889)
+    }else if(copper.data$Bucket[i] == 11){
+      copper.data$Bucket[i] <- replace(copper.data$Bucket[i], 1, 19.91852)
+    }else if(copper.data$Bucket[i] == 12){
+      copper.data$Bucket[i] <- replace(copper.data$Bucket[i], 1, 21.03333)
+    }else if(copper.data$Bucket[i] == 13){
+      copper.data$Bucket[i] <- replace(copper.data$Bucket[i], 1, 21.40741)
+    }else {
+      copper.data$Bucket[i] <- replace(copper.data$Bucket[i], 1, 22.01296)
+    }
+  }
+  
+  # BY Complex
+  for (i in 1:nrow(black.data)){
+    if(black.data$Bucket[i] == 1){
+      black.data$Bucket[i] <- replace(black.data$Bucket[i], 1, 10.45769)
+    }else if(black.data$Bucket[i] == 2){
+      black.data$Bucket[i] <- replace(black.data$Bucket[i], 1, 10.33846)
+    }else if(black.data$Bucket[i] == 3){
+      black.data$Bucket[i] <- replace(black.data$Bucket[i], 1, 14.09038)
+    }else if(black.data$Bucket[i] == 4){
+      black.data$Bucket[i] <- replace(black.data$Bucket[i], 1, 13.89808)
+    }else if(black.data$Bucket[i] == 5){
+      black.data$Bucket[i] <- replace(black.data$Bucket[i], 1, 15.23462)
+    }else if(black.data$Bucket[i] == 6){
+      black.data$Bucket[i] <- replace(black.data$Bucket[i], 1, 17.86923)
+    }else if(black.data$Bucket[i] == 7){
+      black.data$Bucket[i] <- replace(black.data$Bucket[i], 1, 19.35962)
+    }else if(black.data$Bucket[i] == 8){
+      black.data$Bucket[i] <- replace(black.data$Bucket[i], 1, 18.48462)
+    }else if(black.data$Bucket[i] == 9){
+      black.data$Bucket[i] <- replace(black.data$Bucket[i], 1, 19.98462)
+    }else if(black.data$Bucket[i] == 10){
+      black.data$Bucket[i] <- replace(black.data$Bucket[i], 1, 19.45192)
+    }else if(black.data$Bucket[i] == 11){
+      black.data$Bucket[i] <- replace(black.data$Bucket[i], 1, 20.18269)
+    }else if(black.data$Bucket[i] == 12){
+      black.data$Bucket[i] <- replace(black.data$Bucket[i], 1, 20.71346)
+    }else if(black.data$Bucket[i] == 13){
+      black.data$Bucket[i] <- replace(black.data$Bucket[i], 1, 20.97308)
+    }else {
+      black.data$Bucket[i] <- replace(black.data$Bucket[i], 1, 22.61731)
+    }
+  }
+
+  # Remove bad measurement in CQ complex
+  copper.data <- copper.data[-34,]
+
+  # Get full dataframe for analyzing across all species
+  all.data <- rbind(copper.data, black.data)
+  
+  # Remove samples with unknown species
+  all.data <- all.data[all.data$Species_Seq == "Black" |
+                        all.data$Species_Seq == "Yellowtail" |
+                        all.data$Species_Seq == "Copper" |
+                        all.data$Species_Seq == "Quillback",]
+```
+ 
+ 
+## Calculate Growth Indices
+```{r}
+
+## Percent Weight Change
+ all.data$Per_Weight <- ((all.data$End_Weight - all.data$Start_Weight)/
+                                 (all.data$Start_Weight))*100
+## Condition Factor
+ all.data$CF <- ((all.data$End_Weight/(all.data$End_Length)^3)*100)-
+      ((all.data$Start_Weight/(all.data$Start_Length)^3)*100)
+
+```
+
+## Percent Weight Change
+```{r}
+#########################
+#### Model Selection ####
+#########################
+
+## Interaction between Temp and Species
+  all.m1 <- lm(all.data$Per_Weight~all.data$Bucket*all.data$Species_Seq)
+  summary(all.m1)
+  Anova(all.m1, type = 2)
+  drop1(all.m1)
+  
+## Main Effects of Temp and Species
+  all.m2 <- lm(all.data$Per_Weight~all.data$Bucket + all.data$Species_Seq)
+  summary(all.m2)
+  Anova(all.m2, type = 2)
+  drop1(all.m2)
+  anova(all.m1, all.m2, test = "LRT")
+  # no species interaction drop interaction LRT not significant
+  
+## Main Effect of Temp
+  all.m3 <- lm(all.data$Per_Weight~all.data$Bucket)
+  summary(all.m3)
+  anova(all.m2, all.m3, test = "LRT")
+  # model 2 is not significant drop Species term
+  
+  # Assumptions
+  par(mfrow = c(2,2))
+  plot(all.m1)
+  par(mfrow = c(1,1))
+  hist(all.m1$residuals)
+  shapiro.test(all.m3$residuals)
+  
+## Log10 - corrects for non-normality
+  all.m3Log <- lm(log10(all.data$Per_Weight+100)~all.data$Bucket)
+  summary(aov(all.m3Log))
+  summary(all.m3Log)
+  Anova(all.m3Log, type = 2)
+  
+  # Assumptions  
+  par(mfrow = c(2,2))
+  plot(all.m3Log)
+  par(mfrow = c(1,1))
+  hist(all.m3Log$residuals)  
+  shapiro.test(all.m3Log$residuals)
+
+
+```
+
+
+```{r}
+##################
+#### Plotting ####
+##################
+  
+
+  plot(all.data$Per_Weight~all.data$Bucket, pch = 19,
+       bty = "l", ylab = "Percent Weight Change", xlab = "Temperature", 
+       main = "All Species Growth Across Temperatures")
+  text(20, 33, "-2.08 +/- 0.36***")
+  abline(all.m1, lwd = 3)
+
+# Plot with 3 non significant species black and quillback in brown with separate line
+
+ plot(all.data$Per_Weight[all.data$Species_Seq == "Black"]~
+         all.data$Bucket[all.data$Species_Seq == "Black"], 
+       pch = 19, col = "black", bty = "l", 
+       ylab = "Percent Weight Change ", 
+       xlab = expression(paste('Treatment Temperature (',degree,'C)',sep='')), ylim = c(-44, 55))
+ points(all.data$Per_Weight[all.data$Species_Seq == "Yellowtail"]~
+        all.data$Bucket[all.data$Species_Seq == "Yellowtail"], 
+        col = "black", pch = 15)
+ points(all.data$Per_Weight[all.data$Species_Seq == "Copper"]~
+        all.data$Bucket[all.data$Species_Seq == "Copper"], 
+        col = "black", pch = 18)
+ points(all.data$Per_Weight[all.data$Species_Seq == "Quillback"]~
+        all.data$Bucket[all.data$Species_Seq == "Quillback"], 
+        col = "black", pch = 17)
+ legend("topright", legend = c("Black", "Yellowtail", "Copper", "Quillback", 
+                          "model fit"), 
+        pch = c(19,15,18,17,NA), lty = c(NA, NA, NA, NA, 1), lwd = 2)
+ abline(all.m3, lwd = 2)
+ summary(all.m3Log)
+ 
+predicted <- predict(all.m3Log, Bucket = 10:23)    
+lines(10:23, exp(predicted), col = "blue")
+
+
+```
+
+## Condition Index Analysis
+```{r}
+## Interaction between Temp and Species
+  all.CF.m1 <- lm(all.data$CF~all.data$Bucket*all.data$Species_Seq)
+  summary(all.CF.m1)
+  Anova(all.CF.m1, type = 2)
+  drop1(all.m1)
+  
+  all.CF.m2 <- lm(all.data$CF~all.data$Bucket+all.data$Species_Seq)
+  summary(all.CF.m2)
+  Anova(all.CF.m2, type = 2)
+  drop1(all.m2)
+  
+  all.CF.m3 <- lm(all.data$CF~all.data$Bucket)
+  summary(all.CF.m3)
+  Anova(all.CF.m3, type = 2)
+  drop1(all.m3)
+  
+
+```
