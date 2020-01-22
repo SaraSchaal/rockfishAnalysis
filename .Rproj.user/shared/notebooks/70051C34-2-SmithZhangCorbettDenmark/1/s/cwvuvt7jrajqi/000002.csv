@@ -1,5 +1,0 @@
-"0","#Download data"
-"0","benguela <- read.csv(""http://faraway.neu.edu/data/assn3_benguela.csv"")"
-"0","california <- read.csv(""http://faraway.neu.edu/data/assn3_california.csv"")"
-"0","canary <- read.csv(""http://faraway.neu.edu/data/assn3_canary.csv"")"
-"0","humboldt <- read.csv(""http://faraway.neu.edu/data/assn3_humboldt.csv"")"

@@ -7,36 +7,39 @@ output:
   pdf_document: default
 ---
 
-## Data Manipulation
+# Data Manipulation
+## Input Data and Split Experiments
 ```{r}
-## Read in Data ##
-  df.growth <- read.csv("./data/Fish_Measurement_Data_Final.csv") 
-  # subset out CQ complex data
-  copper.df <- df.growth[df.growth$Species_Seq == "Copper" | df.growth$Species_Seq == "Quillback",]
 
-  # check to make sure there wasn't a drastic change in parasites over the experiment
-  boxplot(copper.df$Number_of_Parasites ~ copper.df$Date)
+  # Input data
+    df.growth <- read.csv("/Users/saraschaal/Documents/Northeastern/LotterhosLab/Research/Field Work/2015/TPC_Experiment/Analysis/data/Fish_Measurement_Data_Final.csv") 
+                            #what is going on with this ...can't use relative path?
+    
+copper.df <- df.growth[df.growth$Species_Seq == "Copper" | df.growth$Species_Seq == "Quillback",]
+boxplot(copper.df$Number_of_Parasites ~ copper.df$Date)
+
 
   # Subset Dataframe to Include only Those Necessary for Analysis
-  df.subgrowth  <- subset(df.growth, select = c("Date", "Species_Seq", "Length_mm", "Weight_g",
+    df.subgrowth  <- subset(df.growth, select = c("Date", "Species_Seq", "Length_mm", "Weight_g",
                                                   "Individual_IDs", "Experimental_Treatment_C",
                                                   "Bucket"))
+
   # Remove columns with any NAs
-  df.completegrowth <- na.omit(df.subgrowth)
+    df.completegrowth <- na.omit(df.subgrowth)
 
   # Correct start and end days for two experiments
-  start.day.blk <- subset(df.completegrowth, df.completegrowth$Date==20150620)
-  last.day.blk <- subset(df.completegrowth, df.completegrowth$Date==20150703)
-  start.day.cp <- subset(df.completegrowth, df.completegrowth$Date==20150704)
-  last.day.cp <- subset(df.completegrowth, df.completegrowth$Date==20150718)
+    start.day.blk <- subset(df.completegrowth, df.completegrowth$Date==20150620)
+    last.day.blk <- subset(df.completegrowth, df.completegrowth$Date==20150703)
+    start.day.cp <- subset(df.completegrowth, df.completegrowth$Date==20150704)
+    last.day.cp <- subset(df.completegrowth, df.completegrowth$Date==20150718)
+
+    write.csv(last.day.blk, "last_day_black.csv")
+    write.csv(last.day.cp, "last_day_copper.csv")
+    write.csv(start.day.blk, "start.day.blk.csv")
+    write.csv(start.day.cp, "start.day.cp.csv")
     
-  write.csv(last.day.blk, "last_day_black.csv")
-  write.csv(last.day.cp, "last_day_copper.csv")
-  write.csv(start.day.blk, "start.day.blk.csv")
-  write.csv(start.day.cp, "start.day.cp.csv")
-    
-  copper.data <- read.csv("./data/Copper_Weight.csv", header = TRUE)
-  black.data <- read.csv("./data/Black_Weight.csv", header = TRUE)
+    copper.data <- read.csv("/Users/saraschaal/Documents/Northeastern/LotterhosLab/Research/Field Work/2015/TPC_Experiment/Analysis/data/Copper_Weight.csv", header = TRUE)
+    black.data <- read.csv("/Users/saraschaal/Documents/Northeastern/LotterhosLab/Research/Field Work/2015/TPC_Experiment/Analysis/data/Black_Weight.csv", header = TRUE)
     
 ```
 
@@ -143,7 +146,6 @@ all.data <- rbind(copper.data, black.data)
 #### Model Selection ####
 #########################
 
-## Full Model 
   all.data <- all.data[all.data$Species_Seq == "Black" |
                        all.data$Species_Seq == "Yellowtail" |
                        all.data$Species_Seq == "Copper" |
@@ -152,75 +154,48 @@ all.data <- rbind(copper.data, black.data)
   all.m1 <- lm(all.data$Per_Weight~all.data$Bucket*all.data$Species_Seq)
   summary(aov(all.m1))
   summary(all.m1)
-  Anova(all.m1, type = 2)
-  anova(all.m1, all.m2, test = "LRT")
+  Anova(all.m1)
   drop1(all.m1)
-  # no species interaction but AIC and LRT shows it is the best model
-
-  all.m3 <- lm(all.data$Per_Weight~all.data$Bucket)
-  summary(all.m3)
-  # Assumptions
-  par(mfrow = c(2,2))
-  plot(all.m1)
-  par(mfrow = c(1,1))
-  hist(all.m1$residuals)
-  shapiro.test(all.m1$residuals)
   
-## Log10 
-  all.m1Log <- lm(log10(all.data$Per_Weight)~all.data$Bucket*all.data$Species_Seq)
-  summary(aov(all.m1Log))
-  summary(all.m1Log)
-  Anova(all.m1Log, type = 2)
-  anova(all.m1Log, all.m2Log, test = "LRT")
-  drop1(all.m1Log)
-  
-  # Assumptions  
-  par(mfrow = c(2,2))
-  plot(all.m1Log)
-  par(mfrow = c(1,1))
-  hist(all.m1Log$residuals)  
-  shapiro.test(all.m1Log$residuals)
-  
-## Dropped interaction BUT NOT BEST MODEL JUST FOR CURIOSITY  
+  # no species interaction drop interaction term
   all.m2 <- lm(all.data$Per_Weight~all.data$Bucket + all.data$Species_Seq)
   summary(all.m2)
   summary(aov(all.m2))
   Anova(all.m2, type = 2)
   drop1(all.m2) # Shows a significant affect of temp on growth in Quillback but N = 6 
-  anova(all.m2Log, all.m1Log, test = "LRT")
   
-## Log10 second model
-  all.m2Log <- lm(log10(all.data$Per_Weight+100)~all.data$Bucket + all.data$Species_Seq)
-  summary(all.m2Log)
-  summary(aov(all.m2Log))
-  Anova(all.m2Log, type = 2)
-  drop1(all.m2Log) # Shows a significant affect of temp on growth in Quillback but N = 6 
+  Anova(all.m2)
   
-  #mc <- lsmeans(all.m1, pairwise ~ Species_Seq, adjust = "Tukey")
-  #summary(mc)
+  mc <- lsmeans(all.m2, ~ Species2, adjust = "Tukey")
+  summary(mc)
   
-  lrtest(all.m2Log, all.m1Log)
   
-  all.m3Log <- lm(log10(all.data$Per_Weight+100)~all.data$Bucket)
-  summary(all.m3Log)
+  all.m3 <- lm(all.data$Per_Weight~all.data$Bucket)
+  summary(all.m3)
   
-  lrtest(all.m3Log, all.m2Log)
+  anova(all.m2, all.m3, test = "LRT")
+  
+############################
+#### Model Assumptions #####
+############################
+  
+  plot(all.m2)
+  
 ##################
 #### Plotting ####
 ##################
-  
-  plot(log10(all.data$Per_Weight[all.data$Species_Seq == "Black"]+100)~
+  plot(all.data$Per_Weight[all.data$Species_Seq == "Black"]~
          all.data$Bucket[all.data$Species_Seq == "Black"], 
        pch = 19, col = "black", bty = "l", 
        ylab = "Percent Weight Change", 
-       xlab = "Temperature", ylim = c(1, 3))
-  points(log10(all.data$Per_Weight[all.data$Species_Seq == "Yellowtail"]+100)~
+       xlab = "Temperature", ylim = c(-40, 55))
+  points(all.data$Per_Weight[all.data$Species_Seq == "Yellowtail"]~
            all.data$Bucket[all.data$Species_Seq == "Yellowtail"], 
          col = "black", pch = 21, bg = "goldenrod")
-  points(log10(all.data$Per_Weight[all.data$Species_Seq == "Copper"]+100)~
+  points(all.data$Per_Weight[all.data$Species_Seq == "Copper"]~
            all.data$Bucket[all.data$Species_Seq == "Copper"], 
          col = "orange", pch = 19)
-  points(log10(all.data$Per_Weight[all.data$Species_Seq == "Quillback"]+100)~
+  points(all.data$Per_Weight[all.data$Species_Seq == "Quillback"]~
            all.data$Bucket[all.data$Species_Seq == "Quillback"], 
          col = "brown", pch = 19)
   legend(19.5,53, legend = c("Black", "Yellowtail", "Copper", "Quillback"), 
@@ -234,15 +209,15 @@ all.data <- rbind(copper.data, black.data)
        bty = "l", ylab = "Percent Weight Change", xlab = "Temperature", 
        main = "All Species Growth Across Temperatures")
   text(20, 33, "-2.08 +/- 0.36***")
-  abline(all.m1, lwd = 3)
+  abline(all.m2, lwd = 3)
 
 # Plot with 3 non significant species black and quillback in brown with separate line
 
  plot(all.data$Per_Weight[all.data$Species_Seq == "Black"]~
          all.data$Bucket[all.data$Species_Seq == "Black"], 
        pch = 19, col = "black", bty = "l", 
-       ylab = "log Percent Weight Change ", 
-       xlab = "Temperature", ylim = c(-44, 55))
+       ylab = "Percent Weight Change", 
+       xlab = "Temperature", ylim = c(-40, 55))
  points(all.data$Per_Weight[all.data$Species_Seq == "Yellowtail"]~
         all.data$Bucket[all.data$Species_Seq == "Yellowtail"], 
         col = "black", pch = 15)
@@ -251,18 +226,15 @@ all.data <- rbind(copper.data, black.data)
         col = "black", pch = 18)
  points(all.data$Per_Weight[all.data$Species_Seq == "Quillback"]~
         all.data$Bucket[all.data$Species_Seq == "Quillback"], 
-        col = "black", pch = 17)
- legend("topright", legend = c("Black", "Yellowtail", "Copper", "Quillback", 
-                          "model fit"), 
-        pch = c(19,15,18,17,NA), lty = c(NA, NA, NA, NA, 1), lwd = 2)
- abline(all.m3Log, lwd = 2)
- summary(all.m3Log)
- 
-predicted <- predict(all.m3Log, Bucket = 10:23)    
-lines(10:23, exp(predicted), col = "blue")
- 
- #quillback.int <- summary(all.m2)$coefficient[1]+summary(all.m2)$coefficient[3]
- #abline(quillback.int, summary(all.m2)$coefficient[2], lty = 2, col = "brown", lwd = 2)
+        col = "brown", pch = 17)
+ legend(17,58, legend = c("Black", "Yellowtail", "Copper", "Quillback", 
+                          "BYC model fit", "Quillback model fit"), 
+        pch = c(19,15,18,17,NA,NA), lty = c(NA, NA, NA, NA, 1, 2), 
+         col = c("black", "black", "black", "brown", "black", "brown"), lwd = 2)
+ abline(all.m2, lwd = 2)
+ summary(all.m2)
+ quillback.int <- summary(all.m2)$coefficient[1]+summary(all.m2)$coefficient[3]
+ abline(quillback.int, summary(all.m2)$coefficient[2], lty = 2, col = "brown", lwd = 2)
  #text(14, 50, label = "BYC model fit -2.23x + 25.40")
  #text(14, 43, label = "Quillback model fit -2.23x + 16.34")
   

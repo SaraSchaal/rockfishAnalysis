@@ -82,13 +82,13 @@ output: html_document
   copper.data <- copper.data[-34,]
 
   # Get full dataframe for analyzing across all species
-  all.data <- rbind(copper.data, black.data)
+  grow.data <- rbind(copper.data, black.data)
   
   # Remove samples with unknown species
-  all.data <- all.data[all.data$Species_Seq == "Black" |
-                        all.data$Species_Seq == "Yellowtail" |
-                        all.data$Species_Seq == "Copper" |
-                        all.data$Species_Seq == "Quillback",]
+  grow.data <- grow.data[grow.data$Species_Seq == "Black" |
+                        grow.data$Species_Seq == "Yellowtail" |
+                        grow.data$Species_Seq == "Copper" |
+                        grow.data$Species_Seq == "Quillback",]
 ```
  
  
@@ -96,11 +96,11 @@ output: html_document
 ```{r}
 
 ## Percent Weight Change
- all.data$Per_Weight <- ((all.data$End_Weight - all.data$Start_Weight)/
-                                 (all.data$Start_Weight))*100
+ grow.data$Per_Weight <- ((grow.data$End_Weight - grow.data$Start_Weight)/
+                                 (grow.data$Start_Weight))*100
 ## Condition Factor
- all.data$CF <- ((all.data$End_Weight/(all.data$End_Length)^3)*100)-
-      ((all.data$Start_Weight/(all.data$Start_Length)^3)*100)
+ grow.data$CF <- ((grow.data$End_Weight/(grow.data$End_Length)^3)*100)-
+      ((grow.data$Start_Weight/(grow.data$Start_Length)^3)*100)
 
 ```
 
@@ -111,13 +111,13 @@ output: html_document
 #########################
 
 ## Interaction between Temp and Species
-  all.m1 <- lm(all.data$Per_Weight~all.data$Bucket*all.data$Species_Seq)
+  all.m1 <- lm(grow.data$Per_Weight~grow.data$Bucket*grow.data$Species_Seq)
   summary(all.m1)
   Anova(all.m1, type = 2)
   drop1(all.m1)
   
 ## Main Effects of Temp and Species
-  all.m2 <- lm(all.data$Per_Weight~all.data$Bucket + all.data$Species_Seq)
+  all.m2 <- lm(grow.data$Per_Weight~grow.data$Bucket + grow.data$Species_Seq)
   summary(all.m2)
   Anova(all.m2, type = 2)
   drop1(all.m2)
@@ -125,7 +125,7 @@ output: html_document
   # no species interaction drop interaction LRT not significant
   
 ## Main Effect of Temp
-  all.m3 <- lm(all.data$Per_Weight~all.data$Bucket)
+  all.m3 <- lm(grow.data$Per_Weight~grow.data$Bucket)
   summary(all.m3)
   anova(all.m2, all.m3, test = "LRT")
   # model 2 is not significant drop Species term
@@ -138,7 +138,7 @@ output: html_document
   shapiro.test(all.m3$residuals)
   
 ## Log10 - corrects for non-normality
-  all.m3Log <- lm(log10(all.data$Per_Weight+100)~all.data$Bucket)
+  all.m3Log <- lm(log10(Per_Weight+100)~Bucket, data = grow.data)
   summary(aov(all.m3Log))
   summary(all.m3Log)
   Anova(all.m3Log, type = 2)
@@ -158,9 +158,9 @@ output: html_document
 ##################
 #### Plotting ####
 ##################
-  
+  par(mfrow = c(1,2))
 
-  plot(all.data$Per_Weight~all.data$Bucket, pch = 19,
+  plot(grow.data$Per_Weight~grow.data$Bucket, pch = 19,
        bty = "l", ylab = "Percent Weight Change", xlab = "Temperature", 
        main = "All Species Growth Across Temperatures")
   text(20, 33, "-2.08 +/- 0.36***")
@@ -168,49 +168,75 @@ output: html_document
 
 # Plot with 3 non significant species black and quillback in brown with separate line
 
- plot(all.data$Per_Weight[all.data$Species_Seq == "Black"]~
-         all.data$Bucket[all.data$Species_Seq == "Black"], 
+ plot(grow.data$Per_Weight[grow.data$Species_Seq == "Black"]~
+         grow.data$Bucket[grow.data$Species_Seq == "Black"], 
        pch = 19, col = "black", bty = "l", 
-       ylab = "Percent Weight Change ", 
+       ylab = "Percent Weight Change", 
        xlab = expression(paste('Treatment Temperature (',degree,'C)',sep='')), ylim = c(-44, 55))
- points(all.data$Per_Weight[all.data$Species_Seq == "Yellowtail"]~
-        all.data$Bucket[all.data$Species_Seq == "Yellowtail"], 
+ points(grow.data$Per_Weight[grow.data$Species_Seq == "Yellowtail"]~
+        grow.data$Bucket[grow.data$Species_Seq == "Yellowtail"], 
         col = "black", pch = 15)
- points(all.data$Per_Weight[all.data$Species_Seq == "Copper"]~
-        all.data$Bucket[all.data$Species_Seq == "Copper"], 
+ points(grow.data$Per_Weight[grow.data$Species_Seq == "Copper"]~
+        grow.data$Bucket[grow.data$Species_Seq == "Copper"], 
         col = "black", pch = 18)
- points(all.data$Per_Weight[all.data$Species_Seq == "Quillback"]~
-        all.data$Bucket[all.data$Species_Seq == "Quillback"], 
+ points(grow.data$Per_Weight[grow.data$Species_Seq == "Quillback"]~
+        grow.data$Bucket[grow.data$Species_Seq == "Quillback"], 
         col = "black", pch = 17)
  legend("topright", legend = c("Black", "Yellowtail", "Copper", "Quillback", 
                           "model fit"), 
         pch = c(19,15,18,17,NA), lty = c(NA, NA, NA, NA, 1), lwd = 2)
- abline(all.m3, lwd = 2)
+ mtext(text = "A", side = 3, adj = 0.01, padj = 0.01)
+ #abline(all.m3, lwd = 2)
  summary(all.m3Log)
  
-predicted <- predict(all.m3Log, Bucket = 10:23)    
-lines(10:23, exp(predicted), col = "blue")
+predicted <- predict(all.m3Log, newdata = data.frame(Bucket = 10:23))    
+lines(10:23, (10^(predicted)-100), lwd = 2)
 
+# Plot with 3 non significant species black and quillback in brown with separate line
+
+ plot(grow.data$CF[grow.data$Species_Seq == "Black"]~
+         grow.data$Bucket[grow.data$Species_Seq == "Black"], 
+       pch = 19, col = "black", bty = "l", 
+       ylab = expression(paste(Delta, " Condition Index")), 
+       xlab = expression(paste('Treatment Temperature (',degree,'C)',sep='')), 
+      ylim = c(-0.0005, 0.0006))
+ points(grow.data$CF[grow.data$Species_Seq == "Yellowtail"]~
+        grow.data$Bucket[grow.data$Species_Seq == "Yellowtail"], 
+        col = "black", pch = 15)
+ points(grow.data$CF[grow.data$Species_Seq == "Copper"]~
+        grow.data$Bucket[grow.data$Species_Seq == "Copper"], 
+        col = "black", pch = 18)
+ points(grow.data$CF[grow.data$Species_Seq == "Quillback"]~
+        grow.data$Bucket[grow.data$Species_Seq == "Quillback"], 
+        col = "black", pch = 17)
+ mtext(text = "B", side = 3, adj = 0.01, padj = 0.01)
+ #legend("topright", legend = c("Black", "Yellowtail", "Copper", "Quillback", 
+                          #"model fit"), 
+        #pch = c(19,15,18,17,NA), lty = c(NA, NA, NA, NA, 1), lwd = 2)
+ 
+ abline(grow.CF.m3,lwd = 2)
 
 ```
 
 ## Condition Index Analysis
 ```{r}
 ## Interaction between Temp and Species
-  all.CF.m1 <- lm(all.data$CF~all.data$Bucket*all.data$Species_Seq)
-  summary(all.CF.m1)
-  Anova(all.CF.m1, type = 2)
-  drop1(all.m1)
+  grow.CF.m1 <- lm(grow.data$CF~grow.data$Bucket*grow.data$Species_Seq)
+  summary(grow.CF.m1)
+  Anova(grow.CF.m1, type = 2)
+  drop1(grow.CF.m1)
   
-  all.CF.m2 <- lm(all.data$CF~all.data$Bucket+all.data$Species_Seq)
-  summary(all.CF.m2)
-  Anova(all.CF.m2, type = 2)
-  drop1(all.m2)
+  grow.CF.m2 <- lm(grow.data$CF~grow.data$Bucket+grow.data$Species_Seq)
+  summary(grow.CF.m2)
+  Anova(grow.CF.m2, type = 2)
+  drop1(grow.CF.m2)
   
-  all.CF.m3 <- lm(all.data$CF~all.data$Bucket)
-  summary(all.CF.m3)
-  Anova(all.CF.m3, type = 2)
-  drop1(all.m3)
+  grow.CF.m3 <- lm(grow.data$CF~grow.data$Bucket)
+  summary(grow.CF.m3)
+  Anova(grow.CF.m3, type = 2)
+  drop1(grow.CF.m3)
   
+  shapiro.test(grow.CF.m3$residuals)
+  hist(grow.CF.m3$residuals)
 
 ```
