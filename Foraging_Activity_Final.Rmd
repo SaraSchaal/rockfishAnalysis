@@ -1,0 +1,705 @@
+---
+title: "Comparison of Foraging Activity for Rockfish Complexes"
+author: "Sara Michele Schaal"
+date: "1/24/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r include = FALSE}
+## Load Relevant Packages
+    # if(!("plyr" %in% installed.packages())){
+    #   install.packages("plyr")
+    # }
+    # if(!("dplyr" %in% installed.packages())){
+    #   install.packages("dplyr")
+    # }
+    # if(!("ggplot2" %in% installed.packages())){
+    #   install.packages("ggplot2")
+    # }
+    # if(!("scales" %in% installed.packages())){
+    #   install.packages("scales")
+    # }
+    # if(!("sm" %in% installed.packages())){
+    #   install.packages("sm")
+    # }
+    # if(!("ggpubr" %in% installed.packages())){
+    #   install.packages("ggpubr")
+    # }
+
+    library(plyr)
+    library(dplyr)
+    library(ggplot2)
+    library(scales)
+    library(ggpubr)
+ #   library(sm)
+    
+```
+
+## Read in data and manipulate
+```{r}
+
+  full.act <- read.csv("data/Activity/20171129_ActivityData.csv")
+  black.temps <- read.csv("data/black_exp_temps.csv")
+  copper.temps <- read.csv("data/copper_exp_temps.csv")
+
+  # Subset data into two experiments  
+  black.act <- full.act[full.act$Species == "Black", ]
+  copper.act <- full.act[full.act$Species == "Copper", ]
+  
+  # Reorder data to be in numerical ascending order 
+  # **(only way for loop to work properly)
+  black.temps.asc <- black.temps[order(black.temps$Bucket), ]
+  copper.temps.asc <- copper.temps[order(copper.temps$Bucket_ID), ]
+  
+  # Fill in actual mean temperature data from experiment
+  # BY complex
+  for(i in 1:16){
+    for(j in 1:nrow(black.act)){
+      if(black.act$Bucket[j] == i){
+        black.act$Temperature[j] <- black.temps.asc$mean[i]
+      }
+    }
+  }
+  
+  # CQ complex
+  for(i in 1:16){
+    for(j in 1:nrow(copper.act)){
+      if(copper.act$Bucket[j] == i){
+        copper.act$Temperature[j] <- copper.temps.asc$mean[i]
+      }
+    }
+  }
+
+  
+  # take the mean of the two watches of the same fish per viewer
+  black.act$Act_Mean_Julia <- rowMeans(black.act[, 8:9])
+  black.act$Act_Mean_Sandi <- rowMeans(black.act[, 10:11])
+  copper.act$Act_Mean_Julia <- rowMeans(copper.act[,8:9])
+  copper.act$Act_Mean_Sandi <- rowMeans(copper.act[,10:11])
+  
+
+```
+
+
+
+## Calculate averages per bucket per timepoint
+```{r}
+
+### Black Rockfish ###
+
+    # create empty data frames for mean bucket activity values
+    Mean.Activity <- matrix(NA, nrow(unique(black.act[c("Date", "AM_PM", "Bucket")])),4)
+    bucket.act.average <- unique(black.act[c("Date", "AM_PM", "Bucket", "Temperature")])
+    complete.act.data <- cbind(bucket.act.average, Mean.Activity)
+    colnames(complete.act.data) <- c("Date", "AM_PM", "Bucket", "Temperature", 
+                                     "mean.julia", "mean.sandi", "mean.both", "FishAlive")
+    
+    # initialize the vectors that will be used in the forloop ** NOTE data in these 
+    # vectors is written over in each loop.. they are TEMPORARY vectors **
+    bucket.act.julia <- NULL
+    bucket.act.sandi <- NULL
+    bucket.act.both <- NULL
+    
+    # initialize the counter for stepping through the output matrix
+    j <- 1
+    # For loop to step through data frame to get activity averages
+    for(i in 1:nrow(black.act)){
+      
+      # looping through majority of data to grab all those rows that are not the last row
+      # but are all those that equal the same bucket from the same day and getting 
+      # activity averages
+      if(i != nrow(black.act) && i == 1 || 
+         black.act$Bucket[i] == black.act$Bucket[i-1] && i != nrow(black.act)){
+        
+        bucket.act.julia <- c(bucket.act.julia, black.act$Act_Mean_Julia[i])
+        bucket.act.sandi <- c(bucket.act.sandi, black.act$Act_Mean_Sandi[i])
+        bucket.act.both <- c(bucket.act.both, black.act$Act_Mean_Julia[i], black.act$Act_Mean_Sandi[i])
+     
+        # special case for last row 
+       } else {
+         if(i == nrow(black.act)){
+
+          # Remove any NAs before taking mean for a bucket at a timepoint
+          bucket.act.both.noNA <- bucket.act.both[!is.na(bucket.act.both)]
+          bucket.act.julia.noNA <- bucket.act.julia[!is.na(bucket.act.julia)]
+          bucket.act.sandi.noNA <- bucket.act.sandi[!is.na(bucket.act.sandi)]
+          complete.act.data$mean.julia[j] <- sum(bucket.act.julia.noNA)/length(bucket.act.julia.noNA)
+          complete.act.data$mean.sandi[j] <- sum(bucket.act.sandi.noNA)/length(bucket.act.sandi.noNA)
+          complete.act.data$mean.both[j] <- sum(bucket.act.both.noNA)/length(bucket.act.both.noNA)
+          complete.act.data$FishAlive[j] <- length(bucket.act.sandi.noNA)
+          j <- j + 1
+          
+        } else {
+          
+          # Remove any NAs before taking mean for a bucket at a timepoint
+          bucket.act.both.noNA <- bucket.act.both[!is.na(bucket.act.both)]
+          bucket.act.julia.noNA <- bucket.act.julia[!is.na(bucket.act.julia)]
+          bucket.act.sandi.noNA <- bucket.act.sandi[!is.na(bucket.act.sandi)]
+          
+          # Take mean of that bucket for that day and insert into complete.data dataframe
+          complete.act.data$mean.julia[j] <- sum(bucket.act.julia.noNA)/length(bucket.act.julia.noNA)
+          complete.act.data$mean.sandi[j] <- sum(bucket.act.sandi.noNA)/length(bucket.act.sandi.noNA)
+          complete.act.data$mean.both[j] <- sum(bucket.act.both.noNA)/length(bucket.act.both.noNA)
+          complete.act.data$FishAlive[j] <- length(bucket.act.sandi.noNA)
+          bucket.act.julia <- black.act$Act_Mean_Julia[i]
+          bucket.act.sandi <- black.act$Act_Mean_Sandi[i]
+          bucket.act.both <- c(black.act$Act_Mean_Julia[i], black.act$Act_Mean_Sandi[i])
+          # counter to step through inputting data into the complete.data dataframe
+          j <- j + 1
+          
+        } # close else
+       } # close if else
+      } # close for loop
+    
+### Copper Rockfish ###
+    
+    # create empty data frames for mean bucket activity values
+    Mean.Activity.cp <- matrix(NA, nrow(unique(copper.act[c("Date", "AM_PM", "Bucket")])),4)
+    bucket.act.average.cp <- unique(copper.act[c("Date", "AM_PM", "Bucket", "Temperature")])
+    complete.act.data.cp <- cbind(bucket.act.average.cp, Mean.Activity.cp)
+    colnames(complete.act.data.cp) <- c("Date", "AM_PM", "Bucket", "Temperature", 
+                                     "mean.julia", "mean.sandi", "mean.both", "FishAlive")
+    
+    # initialize the vectors that will be used in the for loop ** NOTE data in these vectors is written
+    # over in each loop.. they are TEMPORARY vectors **
+    bucket.act.julia.cp <- NULL
+    bucket.act.sandi.cp <- NULL
+    bucket.act.both.cp <- NULL
+    
+    bucket.act.both.noNA.cp <- NULL
+    bucket.act.julia.noNA.cp <- NULL
+    bucket.act.sandi.noNA.cp <- NULL
+    
+    # initialize the counter for stepping through the output matrix
+    j <- 1
+    i <- 1
+    # For loop to step through data frame to get activity averages
+    for(i in 1:nrow(copper.act)){
+      
+      # looping through majority of data to grab all those rows that are not the last row
+      # but are all those that equal the same bucket from the same day and getting activity averages
+      if(i != nrow(copper.act) && i == 1 || 
+         copper.act$Bucket[i] == copper.act$Bucket[i-1] && i != nrow(copper.act)){
+        
+        bucket.act.julia.cp <- c(bucket.act.julia.cp, copper.act$Act_Mean_Julia[i])
+        bucket.act.sandi.cp <- c(bucket.act.sandi.cp, copper.act$Act_Mean_Sandi[i])
+        bucket.act.both.cp <- c(bucket.act.both.cp, copper.act$Act_Mean_Julia[i], copper.act$Act_Mean_Sandi[i])
+     
+        # special case for last row 
+       } else {
+         if(i == nrow(copper.act)){
+
+          # Remove any NAs before taking mean for a bucket at a timepoint
+          bucket.act.both.noNA.cp <- bucket.act.both.cp[!is.na(bucket.act.both.cp)]
+          bucket.act.julia.noNA.cp <- bucket.act.julia.cp[!is.na(bucket.act.julia.cp)]
+          bucket.act.sandi.noNA.cp <- bucket.act.sandi.cp[!is.na(bucket.act.sandi.cp)]
+          complete.act.data.cp$mean.julia[j] <- sum(bucket.act.julia.noNA.cp)/length(bucket.act.julia.noNA.cp)
+          complete.act.data.cp$mean.sandi[j] <- sum(bucket.act.sandi.noNA.cp)/length(bucket.act.sandi.noNA.cp)
+          complete.act.data.cp$mean.both[j] <- sum(bucket.act.both.noNA.cp)/length(bucket.act.both.noNA.cp)
+          complete.act.data.cp$FishAlive[j] <- length(bucket.act.sandi.noNA.cp)
+          j <- j + 1
+          
+        } else {
+          
+          # Remove any NAs before taking mean for a bucket at a timepoint
+          bucket.act.both.noNA.cp <- bucket.act.both.cp[!is.na(bucket.act.both.cp)]
+          bucket.act.julia.noNA.cp <- bucket.act.julia.cp[!is.na(bucket.act.julia.cp)]
+          bucket.act.sandi.noNA.cp <- bucket.act.sandi.cp[!is.na(bucket.act.sandi.cp)]
+          
+          # Take mean of that bucket for that day and insert into complete.data dataframe
+          complete.act.data.cp$mean.julia[j] <- sum(bucket.act.julia.noNA.cp)/length(bucket.act.julia.noNA.cp)
+          complete.act.data.cp$mean.sandi[j] <- sum(bucket.act.sandi.noNA.cp)/length(bucket.act.sandi.noNA.cp)
+          complete.act.data.cp$mean.both[j] <- sum(bucket.act.both.noNA.cp)/length(bucket.act.both.noNA.cp)
+          complete.act.data.cp$FishAlive[j] <- length(bucket.act.sandi.noNA.cp)
+          bucket.act.julia.cp <- copper.act$Act_Mean_Julia[i]
+          bucket.act.sandi.cp <- copper.act$Act_Mean_Sandi[i]
+          bucket.act.both.cp <- c(copper.act$Act_Mean_Julia[i], copper.act$Act_Mean_Sandi[i])
+          # counter to step through inputting data into the complete.data dataframe
+          j <- j + 1
+          
+        } # close else
+       } # close if else
+      } # close for loop
+    
+```
+
+
+
+## Create a column for Days Since the Start of Experiment
+```{r}
+
+### Black Rockfish ###
+  # make column for days since start of experiment for panel headers
+  complete.act.data$Days_Since_Start <- NA
+  
+  # add a column that is Date with time of day
+  complete.act.data$Date <- as.factor(complete.act.data$Date)
+  complete.act.data$Date_Time <- as.factor(paste(complete.act.data$Date, complete.act.data$AM_PM))
+   
+  # Round temperature data to one significant figure after decimal place
+  complete.act.data$RTemperature <- round(complete.act.data$Temperature, 1)
+  complete.act.data$DayNum <- NA
+  # add in days since start of experiment column
+  for(i in 1:length(complete.act.data$Days_Since_Start)){
+    if (complete.act.data$Date_Time[i] == "20150623 AM"){
+      complete.act.data$Days_Since_Start[i] <- "Day 4 AM"
+      complete.act.data$DayNum[i] <- 1
+    } else if (complete.act.data$Date_Time[i] == "20150624 PM"){
+      complete.act.data$Days_Since_Start[i] <- "Day 5 PM"
+      complete.act.data$DayNum[i] <- 2
+    } else if (complete.act.data$Date_Time[i] == "20150625 AM"){
+      complete.act.data$Days_Since_Start[i] <- "Day 6 AM"
+      complete.act.data$DayNum[i] <- 3
+    } else if (complete.act.data$Date_Time[i] == "20150625 PM"){
+      complete.act.data$Days_Since_Start[i] <- "Day 6 PM"
+      complete.act.data$DayNum[i] <- 3.5
+    } else if (complete.act.data$Date_Time[i] == "20150626 AM"){
+      complete.act.data$Days_Since_Start[i] <- "Day 7 AM"
+      complete.act.data$DayNum[i] <- 4
+    } else if (complete.act.data$Date_Time[i] == "20150626 PM"){
+      complete.act.data$Days_Since_Start[i] <- "Day 7 PM"
+      complete.act.data$DayNum[i] <- 4.5
+    } else if (complete.act.data$Date_Time[i] == "20150627 AM"){
+      complete.act.data$Days_Since_Start[i] <- "Day 8 AM"
+      complete.act.data$DayNum[i] <- 5
+    } else if (complete.act.data$Date_Time[i] == "20150627 PM"){
+      complete.act.data$Days_Since_Start[i] <- "Day 8 PM"
+      complete.act.data$DayNum[i] <- 5.5
+    } else if (complete.act.data$Date_Time[i] == "20150628 AM"){
+      complete.act.data$Days_Since_Start[i] <- "Day 9 AM"
+      complete.act.data$DayNum[i] <- 6
+    } else if (complete.act.data$Date_Time[i] == "20150628 PM"){
+      complete.act.data$Days_Since_Start[i] <- "Day 9 PM"
+      complete.act.data$DayNum[i] <- 6.5
+    } else if (complete.act.data$Date_Time[i] == "20150629 AM"){
+      complete.act.data$Days_Since_Start[i] <- "Day 10 AM"
+      complete.act.data$DayNum[i] <- 7
+    } else if (complete.act.data$Date_Time[i] == "20150629 PM"){
+      complete.act.data$Days_Since_Start[i] <- "Day 10 PM"
+      complete.act.data$DayNum[i] <- 7.5
+    } else if (complete.act.data$Date_Time[i] == "20150630 AM"){
+      complete.act.data$Days_Since_Start[i] <- "Day 11 AM"
+      complete.act.data$DayNum[i] <- 8
+    } else if (complete.act.data$Date_Time[i] == "20150630 PM"){
+      complete.act.data$Days_Since_Start[i] <- "Day 11 PM"
+      complete.act.data$DayNum[i] <- 8.5
+    } else if (complete.act.data$Date_Time[i] == "20150702 AM"){
+      complete.act.data$Days_Since_Start[i] <- "Day 13 AM"
+      complete.act.data$DayNum[i] <- 10
+    } else if (complete.act.data$Date_Time[i] == "20150702 PM"){
+      complete.act.data$Days_Since_Start[i] <- "Day 13 PM"
+      complete.act.data$DayNum[i] <- 10.5
+    } else if(complete.act.data$Date_Time[i] == "20150703 AM"){
+      complete.act.data$Days_Since_Start[i] <- "Day 14 AM"
+      complete.act.data$DayNum[i] <- 11
+  }
+}
+### Copper Rockfish ###
+  # Make column for Day Since Start of Experiment
+  complete.act.data.cp$Days_Since_Start <- NA
+  
+  # add a column for date time unique combinations
+  complete.act.data.cp$Date <- as.factor(complete.act.data.cp$Date)
+  complete.act.data.cp$Date_Time <- as.factor(paste(complete.act.data.cp$Date, complete.act.data.cp$AM_PM))
+  #complete.act.data.cp[157,9] <- "Day 10 AM" #I am not sure why this single value is going in wrong
+  #complete.act.data.cp[157,10] <- "20150714 AM"
+   
+  # Round temperature data to one significant figure after decimal place
+   complete.act.data.cp$RTemperature <- round(complete.act.data.cp$Temperature, 1)
+   complete.act.data.cp$DayNum <- NA
+   
+  # add in days since start of experiment column
+  for(i in 1:length(complete.act.data.cp$Days_Since_Start)){
+    if (complete.act.data.cp$Date_Time[i] == "20150709 AM"){
+      complete.act.data.cp$Days_Since_Start[i] <- "Day 5 AM"
+      complete.act.data.cp$DayNum[i] <- 1
+    } else if (complete.act.data.cp$Date_Time[i] == "20150709 PM"){
+      complete.act.data.cp$Days_Since_Start[i] <- "Day 5 PM"
+      complete.act.data.cp$DayNum[i] <- 1.5
+    } else if (complete.act.data.cp$Date_Time[i] == "20150710 AM"){
+      complete.act.data.cp$Days_Since_Start[i] <- "Day 6 AM"
+      complete.act.data.cp$DayNum[i] <- 2
+    } else if (complete.act.data.cp$Date_Time[i] == "20150710 PM"){
+      complete.act.data.cp$Days_Since_Start[i] <- "Day 6 PM"
+      complete.act.data.cp$DayNum[i] <- 2.5
+    } else if (complete.act.data.cp$Date_Time[i] == "20150711 AM"){
+      complete.act.data.cp$Days_Since_Start[i] <- "Day 7 AM"
+      complete.act.data.cp$DayNum[i] <- 3
+    } else if (complete.act.data.cp$Date_Time[i] == "20150711 PM"){
+      complete.act.data.cp$Days_Since_Start[i] <- "Day 7 PM"
+      complete.act.data.cp$DayNum[i] <- 3.5
+    } else if (complete.act.data.cp$Date_Time[i] == "20150712 AM"){
+      complete.act.data.cp$Days_Since_Start[i] <- "Day 8 AM"
+      complete.act.data.cp$DayNum[i] <- 4
+    } else if (complete.act.data.cp$Date_Time[i] == "20150712 PM"){
+      complete.act.data.cp$Days_Since_Start[i] <- "Day 8 PM"
+      complete.act.data.cp$DayNum[i] <- 4.5
+    } else if (complete.act.data.cp$Date_Time[i] == "20150713 AM"){
+      complete.act.data.cp$Days_Since_Start[i] <- "Day 9 AM"
+      complete.act.data.cp$DayNum[i] <- 5
+    } else if (complete.act.data.cp$Date_Time[i] == "20150713 PM"){
+      complete.act.data.cp$Days_Since_Start[i] <- "Day 9 PM"
+      complete.act.data.cp$DayNum[i] <- 5.5
+    } else if (complete.act.data.cp$Date_Time[i] == "20150714 AM"){
+      complete.act.data.cp$Days_Since_Start[i] <- "Day 10 AM"
+      complete.act.data.cp$DayNum[i] <- 6
+    } else if (complete.act.data.cp$Date_Time[i] == "20150715 AM"){
+      complete.act.data.cp$Days_Since_Start[i] <- "Day 11 AM"
+      complete.act.data.cp$DayNum[i] <- 7
+    } else if (complete.act.data.cp$Date_Time[i] == "20150715 PM"){
+      complete.act.data.cp$Days_Since_Start[i] <- "Day 11 PM"
+      complete.act.data.cp$DayNum[i] <- 7.5
+    } else if (complete.act.data.cp$Date_Time[i] == "20150716 AM"){
+      complete.act.data.cp$Days_Since_Start[i] <- "Day 12 AM"
+      complete.act.data.cp$DayNum[i] <- 8
+    } else if (complete.act.data.cp$Date_Time[i] == "20150716 PM"){
+      complete.act.data.cp$Days_Since_Start[i] <- "Day 12 PM"
+      complete.act.data.cp$DayNum[i] <- 8.5
+    } else if (complete.act.data.cp$Date_Time[i] == "20150717 AM"){
+      complete.act.data.cp$Days_Since_Start[i] <- "Day 13 AM"
+      complete.act.data.cp$DayNum[i] <- 9
+    } else if (complete.act.data.cp$Date_Time[i] == "20150717 PM"){
+      complete.act.data.cp$Days_Since_Start[i] <- "Day 13 PM"
+      complete.act.data.cp$DayNum[i] <- 9.5
+    } else if (complete.act.data.cp$Date_Time[i] == "20150718 AM"){
+      complete.act.data.cp$Days_Since_Start[i] <- "Day 14 AM"
+      complete.act.data.cp$DayNum[i] <- 10
+    }
+  }
+
+```
+
+
+
+## Panel Plot Activity Across Temperatures for Every Date
+```{r}
+################################################################
+#### Factor Days ###############################################
+#### to change to correct order for plotting the panel plot ####
+################################################################
+### black
+  b.unique_Days <- c("Day 4 AM", "Day 5 PM", "Day 6 AM", "Day 6 PM", "Day 7 AM", "Day 7 PM", 
+                      "Day 8 AM", "Day 8 PM", "Day 9 AM", "Day 9 PM", "Day 10 AM", "Day 10 PM", 
+                      "Day 11 AM", "Day 11 PM", "Day 13 AM", "Day 13 PM", "Day 14 AM")
+  complete.act.data$Days_Since_Start <- as.factor(complete.act.data$Days_Since_Start)
+  complete.act.data$Days_Since_Start <- factor(complete.act.data$Days_Since_Start, 
+                                               levels = b.unique_Days)
+### copper
+   c.unique_Days <- c("Day 5 AM", "Day 5 PM", "Day 6 AM", "Day 6 PM", "Day 7 AM", "Day 7 PM",  
+                       "Day 8 AM", "Day 8 PM", "Day 9 AM", "Day 9 PM", "Day 10 AM", "Day 11 AM", 
+                       "Day 11 PM", "Day 12 AM", "Day 12 PM", "Day 13 AM", "Day 13 PM", "Day 14 AM")
+   complete.act.data.cp$Days_Since_Start <- as.factor(complete.act.data.cp$Days_Since_Start)
+   complete.act.data.cp$Days_Since_Start <- factor(complete.act.data.cp$Days_Since_Start, 
+                                                   levels = c.unique_Days)
+
+
+#############################
+#### Black Rockfish Plot ####
+############################# 
+  # Save plot
+    day.plot <- ggplot(data=complete.act.data, 
+                         aes(x=RTemperature, y=mean.both, 
+                            group=as.factor(Days_Since_Start), 
+                            color = as.integer(Date_Time))) + 
+                       geom_point(aes(size = complete.act.data$FishAlive), alpha = 0.8) + 
+                       geom_smooth(method = "lm", se = FALSE) 
+    
+  # Create plot 
+   bAll.panel <- day.plot + facet_wrap(~Days_Since_Start) +
+     labs(y = "Mean Activity", x = "Temperature") +
+     scale_color_gradient(low = "gainsboro", high = "black", name = "Time") + 
+     theme_bw() + 
+     theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+           panel.grid.minor = element_blank(),
+           axis.line = element_line(colour = "black"),
+           legend.position = "none") + 
+     scale_x_continuous(breaks = pretty_breaks()) + 
+     #scale_size(range = c(1,3))
+     scale_radius(NULL, NULL)
+   
+##############################
+#### Copper Rockfish Plot ####
+############################## 
+  # Save plot
+   day.plot.cp <- ggplot(data=complete.act.data.cp, 
+                         aes(x=RTemperature, y=mean.both, 
+                            group=as.factor(Days_Since_Start), 
+                            color = as.integer(Date_Time))) + 
+                  geom_point(aes(size = complete.act.data.cp$FishAlive), alpha = 0.8) + 
+                  geom_smooth(method = "lm", se = FALSE) 
+  # Create plot
+   cpAll.panel <- day.plot.cp + facet_wrap(~Days_Since_Start) + 
+     labs(y = "Mean Activity", x = "Temperature") + 
+     scale_color_gradient(low = "gainsboro", high = "darkorange", name = "Time") + 
+     scale_x_continuous(NULL) +
+     theme_bw() + 
+     theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+           panel.grid.minor = element_blank(),
+           axis.line = element_line(colour = "black"), 
+           legend.position = "none")  +
+     scale_radius(NULL, NULL)
+
+####################################
+#### Black Rockfish Single Plot ####
+####################################
+  # Create plot
+   bAll.single <- day.plot + labs(y = "Mean Activity", x = "Temperature") + 
+   scale_color_gradient(low = "gainsboro", high = "black", 
+                        name = "Days Since \nStart of \nExperiment", 
+                        breaks = c(4, 8, 12, 16), 
+                        labels = c("Day 6 PM", "Day 8 AM", "Day 10 PM", "Day 13 PM")) + 
+   scale_x_continuous(breaks = pretty_breaks()) +
+   theme_bw() + 
+   theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+         panel.grid.minor = element_blank(),
+         axis.line = element_line(colour = "black")) +
+   scale_radius(breaks = c(1,2,3,4), name = "# Fish Alive", limits = c(1,4))  +
+   guides(color = guide_colourbar(order = 1),
+          size = guide_legend(order = 2))
+   
+#####################################
+#### Copper Rockfish Single Plot ####
+#####################################
+  # Create plot
+   cpAll.single <- day.plot.cp + labs(y = "Mean Activity", x = "Temperature") + 
+   scale_color_gradient(low = "gainsboro", high = "darkorange", 
+                        name = "Days Since \nStart of \nExperiment", 
+                        breaks = c(4, 8, 12, 16), 
+                        labels = c("Day 6 PM", "Day 8 AM", "Day 10 AM", "Day 13 PM")) + 
+   scale_x_continuous(breaks = pretty_breaks()) +
+   theme_bw() + 
+   theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+         panel.grid.minor = element_blank(), 
+         axis.line = element_line(colour = "black")) +
+   scale_radius(NULL, NULL) 
+   
+   ggarrange(bAll.panel, bAll.single, cpAll.panel, cpAll.single, labels = (c("A", "B", "C", "D")))
+   
+```
+
+
+## Generalized Linear Model
+Testing the three way interaction of Time by Species by Temperature
+
+### First edit date/time to be in POSIX form
+```{r}
+library(plyr)
+#Inspect data elements
+str(complete.act.data)
+
+# Construct AM/PM to be times
+  complete.act.data$AM_PMTime <- complete.act.data$AM_PM
+  complete.act.data$AM_PMTime <- revalue(complete.act.data$AM_PMTime, 
+                                         c("AM" = "09:00:00", "PM" = "18:00:00"))
+  
+  complete.act.data.cp$AM_PMTime <- complete.act.data.cp$AM_PM
+  complete.act.data.cp$AM_PMTime <- revalue(complete.act.data.cp$AM_PMTime, 
+                                            c("AM" = "09:00:00", "PM" = "18:00:00"))
+# Create POSIX
+  # black
+  complete.act.data$DateTimePOS <- as.POSIXlt(paste(as.Date(as.character(complete.act.data$Date),
+                                                            format = ("%Y%m%d")),
+                                                    as.character(complete.act.data$AM_PMTime)))
+  # copper
+  complete.act.data.cp$DateTimePOS <- as.POSIXlt(paste(as.Date(as.character(complete.act.data.cp$Date), 
+                                                               format = ("%Y%m%d")),
+                                                       as.character(complete.act.data.cp$AM_PMTime)))
+```
+
+
+### Add column to delineate between species complexes and combined two dataframes
+```{r}
+
+##################################
+#### Data Manipulation ###########
+### Combine Species DataFrames ###
+  species <- rep("Black", 259)
+  species.cp <- rep("Copper", 271)
+  complete.act.data.sp <- cbind(complete.act.data, species)
+  complete.act.data.cp.sp <- cbind(complete.act.data.cp, species.cp)
+  colnames(complete.act.data.cp.sp)[15] <- "species"
+  full.act.data <- rbind(complete.act.data.sp,complete.act.data.cp.sp)
+  
+```
+
+### Run model and check assumptions
+```{r}
+  
+###################################################
+### Full Model: species*temp*time 3-way interaction
+    species.act.m1 <- lm(full.act.data$mean.both ~
+                         full.act.data$Temperature*as.numeric(full.act.data$DateTimePOS)*full.act.data$species)
+    summary(species.act.m1)
+  
+    Anova(species.act.m1, type = 2) 
+    # because the three way interaction is not significant after monte carlo permutation
+    # interactions are also not significant when running the type III so preceded with type II 
+    drop1(species.act.m1)
+   
+    species.act.m2 <- lm(full.act.data$mean.both ~
+                         full.act.data$Temperature*as.numeric(full.act.data$DateTimePOS) +
+                           full.act.data$Temperature*full.act.data$species + 
+                           as.numeric(full.act.data$DateTimePOS)*full.act.data$species)
+    
+    Anova(species.act.m2, type = 3) # becuase of significant interaction
+    anova(species.act.m1,  species.act.m2, test = "LRT")
+    # Model 1 - full model with three way interaction is the best model according to LRT
+    
+## Test Assumptions  
+  # Test for Autocorrelation: Because this is a repeated measures 
+  acf(species.act.m1$residuals) # No autocorrelation
+  
+  # plot data to evaluate assumptions
+  par(mfrow = c(2,2))
+  plot(species.act.m1)
+  qqnorm(species.act.m1$residuals)
+  qqline(species.act.m1$residuals)
+  hist(species.act.m1$residuals)
+  
+  # test for normality using shapiro-wilk test
+  shapiro.test(species.act.m1$residuals) # significant value - not normal 
+
+```
+
+
+## Monte Carlo
+Run a Monte Carlo for full model with species complex, time and temperature
+```{r}
+
+####################
+#### Full Model ####
+####################
+  alpha <- 0.05  # for 95% confidence interval
+  bootstrap <- 999
+  new_act <- numeric(length(bootstrap))
+  fvalues <- matrix(nrow = 999, ncol = 7)
+  colnames(fvalues) <- c("Temp", "Time", "Species", "Temp*Time", "Temp*Species", "Time*Species", "Temp*Time*Species")
+
+  for(i in 1:bootstrap){
+    #new_y <- sample(full.act.data$mean.both, replace = TRUE)
+    new_act <- lm(sample(full.act.data$mean.both) ~ 
+                    sample(full.act.data$Temperature)*sample(as.numeric(full.act.data$DateTimePOS))*
+                    sample(full.act.data$species))
+    fvalues[i,] <- summary(aov(new_act))[[1]][["F value"]][1:7]
+  }
+
+   for(i in 1:bootstrap){
+    #new_y <- sample(full.act.data$mean.both, replace = TRUE)
+    new_act <- lm(sample(full.act.data$mean.both) ~ 
+                    sample(full.act.data$Temperature)*sample(as.numeric(full.act.data$DateTimePOS))*
+                    sample(full.act.data$species))
+    fvalues[i,] <- Anova(new_act, type = 2)[["F value"]][1:7]
+  }
+  
+  fvalues <- as.data.frame(fvalues)
+  fval.means <- colMeans(fvalues)
+  lowCI <- numeric(length(ncol(fvalues)))
+  upCI <- numeric(length(ncol(fvalues)))
+  for(i in 1:ncol(fvalues)){
+    lowCI[i] <- quantile(fvalues[,i], alpha/2, type = 1)
+    upCI[i] <- quantile(fvalues[,i], 1-alpha/2, type = 1)
+  }
+
+  mont.carloData <- cbind(fval.means, lowCI, upCI, summary(aov(species.act.m1))[[1]][["F value"]][1:7])
+  mont.carloData <- cbind(fval.means, lowCI, upCI, Anova(species.act.m1, type = 2)[["F value"]][1:7])
+  mont.carloData
+  ## A value higher than the upper CI indicates significance 
+
+```
+
+
+## Separate data by species complex and rerun analysis
+```{r}
+
+ ## Black Rockfish
+  blk.act.m1 <- lm(complete.act.data$mean.both~complete.act.data$Temperature*as.numeric(complete.act.data$DateTimePOS) 
+                   + complete.act.data$Temperature*as.numeric(complete.act.data$DateTimePOS))
+  summary(aov(blk.act.m1))
+  summary(blk.act.m1)
+  drop1(blk.act.m1)
+  
+  blk.act.m2 <- lm(complete.act.data$mean.both~complete.act.data$Temperature + as.numeric(complete.act.data$DateTimePOS))
+  summary(aov(blk.act.m2))
+  Anova(blk.act.m2, type = 2)
+  drop1(blk.act.m2)
+  
+   anova(blk.act.m2, blk.act.m1, test = "LRT")
+    # Model 2 - better model due to non-significant interaction
+   
+  ## Copper Rockfish
+  cp.act.m1 <- lm((complete.act.data.cp$mean.both)^2~
+                     complete.act.data.cp$Temperature*as.numeric(complete.act.data.cp$DateTimePOS))
+  shapiro.test(cp.act.m1$residuals)
+  Anova(cp.act.m1, type = 3)
+  # type III sums of squares due to a significant interaction
+  summary(cp.act.m1)
+  drop1(cp.act.m1)
+
+
+```
+
+
+```{r}
+
+##########################
+#### BY Complex Model ####
+##########################
+alpha <- 0.05  # for 95% confidence interval
+bootstrap <- 999
+new_act.by <- numeric(length(bootstrap))
+fvalues.by <- matrix(nrow = 999, ncol = 2)
+colnames(fvalues.by) <- c("Temp", "Time")
+
+for(i in 1:bootstrap){
+  #new_y <- sample(full.act.data$mean.both, replace = TRUE)
+  new_act.by <- lm(sample(complete.act.data$mean.both)~sample(complete.act.data$Temperature) + 
+                     sample(as.numeric(complete.act.data$DateTimePOS)))
+  fvalues.by[i,] <- Anova(new_act.by, type = 2)[["F value"]][1:2]
+}
+
+fvalues.by <- as.data.frame(fvalues.by)
+fval.means.by <- colMeans(fvalues.by)
+lowCI.by <- numeric(length(ncol(fvalues.by)))
+upCI.by <- numeric(length(ncol(fvalues.by)))
+for(i in 1:ncol(fvalues.by)){
+  lowCI.by[i] <- quantile(fvalues.by[,i], alpha/2, type = 1)
+  upCI.by[i] <- quantile(fvalues.by[,i], 1-alpha/2, type = 1)
+}
+
+mont.carloData.by <- cbind(fval.means.by, lowCI.by, upCI.by, Anova(blk.act.m1, type = 2)[["F value"]][1:2])
+mont.carloData.by
+
+##########################
+#### CQ Complex Model ####
+##########################
+alpha <- 0.05  # for 95% confidence interval
+bootstrap <- 999
+new_act.cq <- numeric(length(bootstrap))
+fvalues.cq <- matrix(nrow = 999, ncol = 4)
+colnames(fvalues.cq) <- c("Intercept", "Temp", "Time","Temp*Time")
+
+for(i in 1:bootstrap){
+  #new_y <- sample(full.act.data$mean.both, replace = TRUE)
+  new_act.cq <- lm(sample(complete.act.data.cp$mean.both)~sample(complete.act.data.cp$Temperature) + 
+                     sample(as.numeric(complete.act.data.cp$DateTimePOS)) + 
+                     sample(complete.act.data.cp$Temperature*as.numeric(complete.act.data.cp$DateTimePOS)))
+  fvalues.cq[i,] <- Anova(new_act.cq, type = 3)[["F value"]][1:4]
+                         
+}
+
+fvalues.cq <- as.data.frame(fvalues.cq)
+fval.means.cq <- colMeans(fvalues.cq)
+lowCI.cq <- numeric(length(ncol(fvalues.cq)))
+upCI.cq <- numeric(length(ncol(fvalues.cq)))
+for(i in 1:ncol(fvalues.cq)){
+  lowCI.cq[i] <- quantile(fvalues.cq[,i], alpha/2, type = 1)
+  upCI.cq[i] <- quantile(fvalues.cq[,i], 1-alpha/2, type = 1)
+}
+
+mont.carloData.cq <- cbind(fval.means.cq, lowCI.cq, upCI.cq, Anova(cp.act.m1, type = 3)[["F value"]][1:4])
+mont.carloData.cq
+```
+

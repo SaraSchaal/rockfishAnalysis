@@ -91,7 +91,7 @@ output:
   log.mod.all.complex <- glm(cbind(Days_Survived, DaysDead)~Treatment_Temperature*Species3,
                            family = binomial(link = 'logit'), data = mort.data)
   summary(log.mod.all.complex)
-  Anova(log.mod.all.complex, type = 2)
+  Anova(log.mod.all.complex, type = 3)
   ## Use capital Anova for sums of squares that equals Type II sums of squares where 
   ## the SS are calculated for the main effects but not the interaction and should 
   ## only be used when there is not a significant interaction statistically more 
@@ -126,6 +126,7 @@ output:
   quasi.mod.all.complex2 <- glm(cbind(Days_Survived, DaysDead)~Treatment_Temperature+Species3,
                            family = quasibinomial(link = 'logit'), data = mort.data)
   anova(quasi.mod.all.complex, quasi.mod.all.complex2, test = "LRT")
+  summary(quasi.mod.all.complex2)
   ## Model 1 with interaction is the best model
   
 ###################################
@@ -151,16 +152,17 @@ output:
               family = quasibinomial(link = "logit"),
               data = mort.data)
   summary(quasiModel1)
-  Anova(quasiModel1, type = 2) 
+  Anova(quasiModel1, type = 1) 
   # Interaction is not significant check LRT
 
   # dropping interaction term
   quasiModel2 <- glm(cbind(Days_Survived, DaysDead)~Treatment_Temperature + Species2, 
               family = quasibinomial(link = "logit"),
               data = mort.data)
+  
   anova(quasiModel1, quasiModel2,  test = "LRT")
   # Can drop the interaction term due to nonsignificant LRT
-  Anova(quasiModel2, type = 2)
+  Anova(quasiModel2, type = 3)
   summary(quasiModel2)
   
   # run least-squares means to identify which species are different

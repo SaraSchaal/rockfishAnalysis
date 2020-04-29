@@ -979,7 +979,6 @@ str(complete.act.data)
                          full.act.data$Temperature*as.numeric(full.act.data$DateTimePOS)*full.act.data$species)
     summary(species.act.m1)
     summary(aov(species.act.m1))
-    
     hist(full.act.data$mean.both)
    
 ## Test Assumptions  
@@ -1070,19 +1069,20 @@ str(complete.act.data)
   drop1(blk.act.m2)
   
  ## Copper Rockfish
-  cp.act.m1 <- lm(complete.act.data.cp$mean.both~complete.act.data.cp$Temperature + 
-                     as.numeric(complete.act.data.cp$DateTimePOS) + 
+  cp.act.m1 <- lm((complete.act.data.cp$mean.both)^2~
                      complete.act.data.cp$Temperature*as.numeric(complete.act.data.cp$DateTimePOS))
-  summary(aov(cop.act.m1))
-  summary(cop.act.m1)
-  drop1(cop.act.m1)
+  summary(aov(cp.act.m1))
+  summary(cp.act.m1)
+  qqnorm(cp.act.m1$residuals)
+  qqline(cp.act.m1$residuals, col = "red")
+  
+  shapiro.test(cp.act.m1$residuals)
 
 ```
 
 
 ## Monte Carlo
 ```{r}
-
 
 ####################
 #### Full Model ####
@@ -1110,6 +1110,7 @@ for(i in 1:ncol(fvalues)){
 
 mont.carloData <- cbind(fval.means, lowCI, upCI, summary(aov(species.act.m1))[[1]][["F value"]][1:7])
 mont.carloData
+## A value higher than the upper CI indicates significance 
 
 ##########################
 #### BY Complex Model ####
@@ -1117,15 +1118,15 @@ mont.carloData
 alpha <- 0.05  # for 95% confidence interval
 bootstrap <- 999
 new_act.by <- numeric(length(bootstrap))
-fvalues.by <- matrix(nrow = 999, ncol = 7)
-colnames(fvalues.by) <- c("Temp", "Time", "Species", "Temp*Time", "Temp*Species", "Time*Species", "Temp*Time*Species")
+fvalues.by <- matrix(nrow = 999, ncol = 3)
+colnames(fvalues.by) <- c("Temp", "Time", "Temp*Time")
 
 for(i in 1:bootstrap){
   #new_y <- sample(full.act.data$mean.both, replace = TRUE)
   new_act.by <- lm(sample(complete.act.data$mean.both)~sample(complete.act.data$Temperature) + 
                      sample(as.numeric(complete.act.data$DateTimePOS)) + 
                      sample(complete.act.data$Temperature*as.numeric(complete.act.data$DateTimePOS)))
-  fvalues.by[i,] <- summary(aov(new_act.by))[[1]][["F value"]][1:7]
+  fvalues.by[i,] <- summary(aov(new_act.by))[[1]][["F value"]][1:3]
 }
 
 fvalues.by <- as.data.frame(fvalues.by)
@@ -1143,7 +1144,7 @@ mont.carloData.by
 ##########################
 #### CQ Complex Model ####
 ##########################
-alpha <- 0.001  # for 95% confidence interval
+alpha <- 0.05  # for 95% confidence interval
 bootstrap <- 999
 new_act.cq <- numeric(length(bootstrap))
 fvalues.cq <- matrix(nrow = 999, ncol = 3)
