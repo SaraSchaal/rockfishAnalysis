@@ -1,0 +1,160 @@
+---
+title: "FieldTempDataFinal"
+author: "Sara Michele Schaal"
+date: "6/19/2020"
+output: html_document
+---
+
+
+```{r, warning = FALSE}
+knitr::opts_knit$set(root.dir = "/Users/saraschaal/Documents/Northeastern/LotterhosLab/Research/Field Work/2015/TPC_Experiment/Analysis")
+```
+
+#Aphrodite Point Data
+```{r}
+# Load Libraries
+  library(ggplot2)
+  library(scales)
+  library(dplyr)
+
+
+# Input data
+  aphdailySST <- read.csv("./data/AmphitriteDailySalTemp.csv")
+
+# Manipulate Data
+  aphdaily2004 <- subset(aphdailySST, subset = aphdailySST$Year > 2003 & aphdailySST$Year < 2016)
+  aphdaily2004 <- aphdaily2004[aphdaily2004$Temperature < 99.9,]
+  aphdaily2004$MonthDay <- paste(aphdaily2004$Month, aphdaily2004$Day)
+  aphdaily2004$YMD <- paste(aphdaily2004$Year, aphdaily2004$Month, aphdaily2004$Day)
+  aphdaily2004$Date <- as.Date(aphdaily2004$YMD, "%Y %m %d")
+  recruitmentMonths <- aphdaily2004[aphdaily2004$Month == 5 | 
+                                    aphdaily2004$Month == 6 | 
+                                    aphdaily2004$Month == 7 | 
+                                    aphdaily2004$Month == 8, ]
+
+
+  
+```
+
+# Katie's Data from Sampling Sites
+```{r}
+
+## Import data
+  tempSampSitesOrg <- read.csv("./data/TempData_site_Species.csv")
+
+## Subsetting 
+  # for columns of interest
+  tempSampSitesOrg <- subset(tempSampSitesOrg, select = c(ActualDate, Site, Temperature))
+  # Subset for only those values over 0 (zeros added when temperatures weren't taken)
+  tempSampSitesNoZeros <- tempSampSitesOrg[tempSampSitesOrg$Temperature > 0,]
+  # Remove rows with any NAs
+  tempSampSites <- na.omit(tempSampSitesNoZeros)
+   
+## Data manipulation 
+  # Convert date column to date format and extract year for new column
+  tempSampSites$Date <- as.Date(tempSampSites$ActualDate, "%m/%d/%Y")
+  tempSampSites$Year <- substring(as.character(tempSampSites$Date),1,4)
+  tempSampSites$Month <- as.numeric(substring(as.character(tempSampSites$Date),6,7))
+  
+  # Convert number months to names
+  tempSampSites$MonthName <- NA
+  for(i in 1:nrow(tempSampSites)){
+    if(tempSampSites$Month[i] == 6){
+      tempSampSites$MonthName[i] <- "June"
+    } else if(tempSampSites$Month[i] == 7){
+      tempSampSites$MonthName[i] <- "July"
+    } else if(tempSampSites$Month[i] == 8){
+      tempSampSites$MonthName[i] <- "August"
+    } else if(tempSampSites$Month[i] == 5){
+      tempSampSites$MonthName[i] <- "May"
+    } else {
+      tempSampSites$MonthName[i] <- NA
+    }
+  }
+  
+  # Convert data into the same scale some years Fahrenheit was taken others Celcius
+  for(i in 1:nrow(tempSampSites)){
+    if(tempSampSites$Temperature[i] > 40){
+      tempSampSites$Temperature[i] <- (tempSampSites$Temperature[i]-32)*(5/9)
+    } else {
+      tempSampSites$Temperature[i] <- tempSampSites$Temperature[i]
+    }
+  } 
+  
+  # Subset the data for only sites I sampled
+  tempSampSixSites <- tempSampSites[tempSampSites$Site == "Bluestone" |
+                                         tempSampSites$Site == "Blowhole" |
+                                         tempSampSites$Site == "Execution" |
+                                         tempSampSites$Site == "Nudibranch" |
+                                         tempSampSites$Site == "Prasiola" |
+                                         tempSampSites$Site == "Whittlestone", ]
+# Set standard error function
+  SE <- function(x){
+    sd(x)/sqrt(length(x))
+  }
+  
+  meanTempKaties <- aggregate(Temperature~Month+Year, data = tempSampSixSites, FUN = mean)
+  confidMeanTempKaties <- aggregate(Temperature~Month+Year, data = tempSampSixSites, FUN = SE)
+  meanTempKaties$upp <- meanTempKaties$Temperature + 1.96*confidMeanTempKaties$Temperature
+  meanTempKaties$lowr <- meanTempKaties$Temperature - 1.96*confidMeanTempKaties$Temperature
+  maxTempKaties <- aggregate(Temperature~Date, data = tempSampSixSites, FUN = max)
+
+
+```
+
+
+# Plotting
+```{r}
+
+### boxplot of the two datasets ###
+
+sites.df <- tempSampSixSites[,c(3,5,6)]
+aph.df <- recruitmentMonths[,c(1:2, 5)]
+sites.df$location <- "SampSites"
+aph.df$location <- "Aphrodite Point"
+colnames(sites.df) <- c("SST", "year", "month", "location")
+colnames(aph.df) <- c("year", "month", "SST", "location")
+df.locs <- rbind(sites.df, aph.df)
+df.locs <- na.omit(df.locs, cols = year)
+par(mfrow = c(1,1))
+boxplot(SST~location+year, data = df.locs, at = c(1:2, 4:5, 7:8, 10:11, 13:14, 16:17, 19:20, 22:23, 25:26, 28:29, 31:32, 34:35), col = c("cornflowerblue", "aquamarine" ), names = c("      2004", "", "     2005", "", "      2006", "", "      2007", "", "      2008", "", "      2009", "", "      2010", "", "       2011", "", "      2012", "", "      2013", "", "      2014", "", "      2015", ""), ylab = expression(paste('Sea Surface Temperature (',degree,'C)',sep='')), xlab = "Year", las = 2)
+legend("topleft", legend = c("Aphrodite Point", "Six Sampling Locations"), fill = c("cornflowerblue", "aquamarine"), cex = 0.8)
+
+### Exploring above 16 per year ###
+nrow(sites.df)
+nrow(sites.df[sites.df$SST >= 16, ])
+sites.df[sites.df$SST <= 16, ]
+
+## Create a for loop to determine the proportion of days per month year combo that are above 16 C
+## Get sampling day average across all sites
+aveTempPerDay <- aggregate(Temperature~Date, data = tempSampSixSites, FUN = mean)
+
+uniqueYearMonth <- unique(paste(tempSampSixSites$Year, tempSampSixSites$Month))
+datesAbove <- NULL
+datesBelow <- NULL
+for(i in 1:length(uniqueYearMonth)){
+  for(j in 1:nrow(tempSampSixSites)){
+    if(uniqueYearMonth[i] == paste(tempSampSixSites$Year[j],
+                                   tempSampSixSites$Month[j])){
+      if(tempSampSixSites$Temperature[j] >= 16){
+        datesAbove <- c(datesAbove, as.character(tempSampSixSites$ActualDate[j]))
+      } else {
+        datesBelow <- c(datesBelow, as.character(tempSampSixSites$ActualDate[j]))
+      }
+    }
+  }
+}
+```
+
+# Analysis
+```{r}
+
+fieldTempMod<- lm(SST~location, data = df.locs)
+summary(fieldTempMod)
+Anova(fieldTempMod, type = 2)
+shapiro.test(fieldTempMod$residuals) #0.002
+plot(fieldTempMod)
+# very slight deviations from the tail of the qqplot
+# transformation makes it less normal
+
+```

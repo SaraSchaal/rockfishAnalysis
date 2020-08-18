@@ -36,7 +36,7 @@ knitr::opts_knit$set(root.dir = "/Users/saraschaal/Documents/Northeastern/Lotter
   boxplot(SST~year, data = aphmonthSST.long, ylim = c(6,15), 
           ylab = "Monthly Mean SST", xlab = "Year")
   
-# Extract recruitment months
+## Extract recruitment months and years that we have data for
   recruitmonths <- aphmonthSST.long[aphmonthSST.long$month == 5 | 
                                     aphmonthSST.long$month == 6 | 
                                     aphmonthSST.long$month == 7 | 
@@ -91,7 +91,7 @@ knitr::opts_knit$set(root.dir = "/Users/saraschaal/Documents/Northeastern/Lotter
                  geom_point() + 
                  geom_smooth(method = "loess", se = FALSE) 
                  
-aphdailySSTplot + labs(y = "Daily SST", x = "Day") + ggtitle("Aphrodite Point") 
+aphdailySSTplot + labs(y = "Daily SST", x = "Month") + ggtitle("Aphrodite Point") 
 
 
 dev.off()
@@ -102,10 +102,10 @@ boxplot(Temperature~Year, data = month.max,
 
 recruitmonths.daily <- month.max[month.max$Month == 5 |
                            month.max$Month == 6 | 
-                           month.max$Month == 7,]
+                           month.max$Month == 7 ,]
 boxplot(Temperature~Year, data = recruitmonths.daily, 
         ylab = "Monthly Max SST", xlab = "Year")
-plot(Temperature~Date, data = aphdaily2004, type = "l")
+
 ```
 
 #two panel plot
@@ -176,7 +176,8 @@ plot(Temperature~Date, data = month.mean, type = "l", ylim = c(7,17), main = "Mo
                                          tempSampSites$Site == "Blowhole" |
                                          tempSampSites$Site == "Execution" |
                                          tempSampSites$Site == "Nudibranch" |
-                                         tempSampSites$Site == "Prasiola", ]
+                                         tempSampSites$Site == "Prasiola" |
+                                         tempSampSites$Site == "Whittlestone", ]
 # Set standard error function
   SE <- function(x){
     sd(x)/sqrt(length(x))
@@ -226,8 +227,9 @@ plot(Temperature~Date, data = month.mean, type = "l", ylim = c(7,17), main = "Mo
   boxplot(Temperature~Year, data = tempSampSixSitesAll)
   temp.model <- lm(Temperature~Year, data = tempSampSixSitesAll)
   summary(aov(temp.model))
+  Anova(temp.model, type = 2)
   plot(temp.model)
-  shapiro.test(temp.model$residuals) #0.03  just barely sig 
+  shapiro.test(temp.model$residuals) #0.3
 ```
 
 
