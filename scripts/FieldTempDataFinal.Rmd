@@ -10,7 +10,7 @@ output: html_document
 knitr::opts_knit$set(root.dir = "/Users/saraschaal/Documents/Northeastern/LotterhosLab/Research/Field Work/2015/TPC_Experiment/Analysis")
 ```
 
-#Aphrodite Point Data
+# Aphrodite Point Data
 ```{r}
 # Load Libraries
   library(ggplot2)

@@ -8,32 +8,29 @@
     if(!("plyr" %in% installed.packages())){
       install.packages("plyr")
     }
-    library(plyr)
-
     if(!("dplyr" %in% installed.packages())){
       install.packages("dplyr")
     }
-    library(dplyr)
-
     if(!("reshape2" %in% installed.packages())){
       install.packages("reshape2")
     }
-    library(reshape2)
-
     if(!("AICcmodavg" %in% installed.packages())){
       install.packages("AICcmodavg")
     }
-    library(AICcmmodavg)
-
     if(!("ggplot2" %in% installed.packages())){
       install.packages("ggplot2")
     }
+
+    library(plyr)
+    library(dplyr)
+    library(reshape2)
+    library(AICcmodavg)
     library(ggplot2)
 
   ## Black Rockfish ##
 
     # Load Data Frames
-      temp.data <- read.csv("Temp_Data_Black.csv")
+      temp.data <- read.csv("data/Temp_Data_Black.csv")
       head(temp.data)
       temp.data2 <- temp.data[, -(14:15)]
 
@@ -52,11 +49,13 @@
                                   summarise, mean = mean(value), sd = sd(value))
 
       treatment.buckets.summ.blk <- summary.stats.black[c(1:5, 7, 9, 10:16), ]
+      all.treatment.buckets.blk <- summary.stats.black[c(1:16),]
+      write.csv(all.treatment.buckets.blk, "data/black_exp_temps.csv", row.names = FALSE)
 
   ## Copper Rockfish ##
 
     # Load Data
-      temp.data.cp <- read.csv("Temp_Data_Copper.csv")
+      temp.data.cp <- read.csv("data/Temp_Data_Copper.csv")
       head(temp.data.cp)
 
     # Turn data fram into a tbl_df to wrap text and calculate Mean of Gamma and pH Meter temps
@@ -73,7 +72,9 @@
   
     # Separate out just treatment values
       treatment.buckets.summ.cp <- summary.stats.copper[c(1:6, 9:16), ]
-    
+      all.treatment.buckets.cp <- summary.stats.copper[c(1:16),]
+      write.csv(all.treatment.buckets.cp, "data/copper_exp_temps.csv", row.names = FALSE)
+      
 #### Growth Data ####
   
   # Load Data Frame

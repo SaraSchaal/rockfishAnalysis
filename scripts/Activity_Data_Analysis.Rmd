@@ -40,7 +40,7 @@ output: html_document
 ```{r}
 
 ## Read in data ##
-  full.act <- read.csv("data/Activity/20171129_ActivityData.csv")
+  full.act <- read.csv("data/20171129_ActivityData.csv")
   black.temps <- read.csv("data/black_exp_temps.csv")
   copper.temps <- read.csv("data/copper_exp_temps.csv")
 
@@ -530,8 +530,10 @@ output: html_document
   complete.act.data.cp.sp <- cbind(complete.act.data.cp, species.cp)
   colnames(complete.act.data.cp.sp)[15] <- "species"
   full.act.data <- rbind(complete.act.data.sp,complete.act.data.cp.sp)
+####################################
+
   
-################################################
+################################################  
 #### Models ####################################
 ### Full Model: species*temp*time 3-way interaction
   species.act.m1 <- lm(full.act.data$mean.both ~
@@ -539,11 +541,13 @@ output: html_document
                          full.act.data$species)
   summary(species.act.m1)
   summary(aov(species.act.m1))
+  Anova(species.act.m1, type = 2)
   hist(full.act.data$mean.both)
    
- # Test Assumptions #
+ ## Test Assumptions #
   # Autocorrelation: Because this is a repeated measures 
-  acf(species.act.m1$residuals) # No autocorrelation
+  acf(species.act.m1$residuals) 
+  # RESULT: No autocorrelation
   
   # Diagnostic plots: normality and homoscedasticity 
   par(mfrow = c(2,2))
@@ -552,7 +556,7 @@ output: html_document
   qqline(species.act.m1$residuals)
   hist(species.act.m1$residuals)
   shapiro.test(species.act.m1$residuals)
-  # Data is not normal 
+  # RESULT: Data is not normal 
   
   blk <- full.act.data[full.act.data$species == "Black", ]
   hist(blk$mean.both)
@@ -563,7 +567,7 @@ output: html_document
   species.act.m1Log <- lm(log10(full.act.data$mean.both + 10) ~
                          full.act.data$Temperature*as.numeric(full.act.data$DateTimePOS)*full.act.data$species)
   summary(species.act.m1Log)
-  summary(aov(species.act.m1Log))
+  Anova(species.act.m1Log, type = 2)
   
   # Test Assumptions #
   par(mfrow = c(2,2))
@@ -578,7 +582,7 @@ output: html_document
   species.act.m1SR <- lm(sqrt(full.act.data$mean.both) ~
                          full.act.data$Temperature*as.numeric(full.act.data$DateTimePOS)*full.act.data$species)
   summary(species.act.m1SR)
-  summary(aov(species.act.m1SR))
+  Anova(species.act.m1SR, type = 2)
   
   # Test Assumptions #
   par(mfrow = c(2,2))
@@ -603,8 +607,6 @@ output: html_document
   qqline(species.act.m1SQ$residuals)
   hist(species.act.m1SQ$residuals)
   shapiro.test(species.act.m1SQ$residuals)
-  
-  
  
 ### Second Model Set: Time*Species & Temp*Species
   species.act.m2 <- lm(full.act.data$mean.both~as.numeric(full.act.data$DateTimePOS)*full.act.data$species)
@@ -617,28 +619,29 @@ output: html_document
   
   species.act.m3 <- lm(full.act.data$mean.both~full.act.data$Temperature*full.act.data$species)
   summary(species.act.m3)
-  summary(aov(species.act.m3))
+  Anova(species.act.m3, type = 2)
   
 ### Third Model Set: Separate out Species
  ## BY Complex
   blk.act.m1 <- lm(complete.act.data$mean.both~complete.act.data$Temperature + 
                      as.numeric(complete.act.data$DateTimePOS) + 
                      complete.act.data$Temperature*as.numeric(complete.act.data$DateTimePOS))
-  summary(aov(blk.act.m1))
+ 
+  Anova(blk.act.m1, type = 2)
   summary(blk.act.m1)
   drop1(blk.act.m1)
   
-  blk.act.m2 <- lm(complete.act.data$mean.both~complete.act.data$Temperature + as.numeric(complete.act.data$DateTimePOS))
-  summary(aov(blk.act.m2))
-  drop1(blk.act.m2)
+  blk.act.m2 <- lm(complete.act.data$mean.both~complete.act.data$Temperature +
+                     as.numeric(complete.act.data$DateTimePOS))
+  summary(blk.act.m2)
+  Anova(blk.act.m2, type = 2)
+  anova(blk.act.m2, blk.act.m1, test = "LRT")
+  # RESUlT: drop time from by complex model 
   
  ## CQ Complex
-  cp.act.m1 <- lm(complete.act.data.cp$mean.both~complete.act.data.cp$Temperature + 
-                     as.numeric(complete.act.data.cp$DateTimePOS) + 
-                     complete.act.data.cp$Temperature*as.numeric(complete.act.data.cp$DateTimePOS))
-  summary(aov(cop.act.m1))
-  summary(cop.act.m1)
-  drop1(cop.act.m1)
+  cp.act.m1 <- lm(complete.act.data.cp$mean.both ~ complete.act.data.cp$Temperature*as.numeric(complete.act.data.cp$DateTimePOS))
+  Anova(cp.act.m1, type = 3)
+  summary(cp.act.m1)
 
 ```
 
@@ -658,7 +661,8 @@ colnames(fvalues) <- c("Temp", "Time", "Species", "Temp*Time", "Temp*Species", "
 for(i in 1:bootstrap){
   #new_y <- sample(full.act.data$mean.both, replace = TRUE)
   new_act <- lm(sample(full.act.data$mean.both) ~ sample(full.act.data$Temperature)*sample(as.numeric(full.act.data$DateTimePOS))*sample(full.act.data$species))
-  fvalues[i,] <- summary(aov(new_act))[[1]][["F value"]][1:7]
+  fvalues[i,] <- Anova(new_act, type = 2)[["F value"]][1:7]
+  #fvalues[i,] <- summary(aov(new_act))[[1]][["F value"]][1:7]
 }
 
 fvalues <- as.data.frame(fvalues)
@@ -670,7 +674,7 @@ for(i in 1:ncol(fvalues)){
   upCI[i] <- quantile(fvalues[,i], 1-alpha/2, type = 1)
 }
 
-mont.carloData <- cbind(fval.means, lowCI, upCI, summary(aov(species.act.m1))[[1]][["F value"]][1:7])
+mont.carloData <- cbind(fval.means, lowCI, upCI, Anova(species.act.m1, type = 2)[[3]][1:7])
 mont.carloData
 
 ##########################
@@ -679,15 +683,14 @@ mont.carloData
 alpha <- 0.05  # for 95% confidence interval
 bootstrap <- 999
 new_act.by <- numeric(length(bootstrap))
-fvalues.by <- matrix(nrow = 999, ncol = 7)
-colnames(fvalues.by) <- c("Temp", "Time", "Species", "Temp*Time", "Temp*Species", "Time*Species", "Temp*Time*Species")
+fvalues.by <- matrix(nrow = 999, ncol = 2)
+colnames(fvalues.by) <- c("Temp", "Time")
 
 for(i in 1:bootstrap){
   #new_y <- sample(full.act.data$mean.both, replace = TRUE)
   new_act.by <- lm(sample(complete.act.data$mean.both)~sample(complete.act.data$Temperature) + 
-                     sample(as.numeric(complete.act.data$DateTimePOS)) + 
-                     sample(complete.act.data$Temperature*as.numeric(complete.act.data$DateTimePOS)))
-  fvalues.by[i,] <- summary(aov(new_act.by))[[1]][["F value"]][1:7]
+                     sample(as.numeric(complete.act.data$DateTimePOS)))
+  fvalues.by[i,] <- Anova(new_act.by, type =  2)[["F value"]][1:2]
 }
 
 fvalues.by <- as.data.frame(fvalues.by)
@@ -699,24 +702,25 @@ for(i in 1:ncol(fvalues.by)){
   upCI.by[i] <- quantile(fvalues.by[,i], 1-alpha/2, type = 1)
 }
 
-mont.carloData.by <- cbind(fval.means.by, lowCI.by, upCI.by, summary(aov(blk.act.m1))[[1]][["F value"]][1:3])
+mont.carloData.by <- cbind(fval.means.by, lowCI.by, upCI.by, Anova(blk.act.m1, type = 2)[["F value"]][1:2])
 mont.carloData.by
 
 ##########################
 #### CQ Complex Model ####
 ##########################
-alpha <- 0.001  # for 95% confidence interval
+alpha <- 0.05  # for 95% confidence interval
 bootstrap <- 999
 new_act.cq <- numeric(length(bootstrap))
-fvalues.cq <- matrix(nrow = 999, ncol = 3)
-colnames(fvalues.cq) <- c("Temp", "Time","Temp*Time")
+fvalues.cq <- matrix(nrow = 999, ncol = 4)
+colnames(fvalues.cq) <- c("Intercept", "Temp", "Time","Temp*Time")
 
 for(i in 1:bootstrap){
   #new_y <- sample(full.act.data$mean.both, replace = TRUE)
   new_act.cq <- lm(sample(complete.act.data.cp$mean.both)~sample(complete.act.data.cp$Temperature) + 
                      sample(as.numeric(complete.act.data.cp$DateTimePOS)) + 
                      sample(complete.act.data.cp$Temperature*as.numeric(complete.act.data.cp$DateTimePOS)))
-  fvalues.cq[i,] <- summary(aov(new_act.cq))[[1]][["F value"]][1:3]
+ # fvalues.cq[i,] <- summary(aov(new_act.cq))[[1]][["F value"]][1:3]
+  fvalues.cq[i,] <- Anova(new_act.cq, type = 3)[["F value"]][1:4]
 }
 
 fvalues.cq <- as.data.frame(fvalues.cq)
@@ -728,6 +732,6 @@ for(i in 1:ncol(fvalues.cq)){
   upCI.cq[i] <- quantile(fvalues.cq[,i], 1-alpha/2, type = 1)
 }
 
-mont.carloData.cq <- cbind(fval.means.cq, lowCI.cq, upCI.cq, summary(aov(cp.act.m1))[[1]][["F value"]][1:3])
+mont.carloData.cq <- cbind(fval.means.cq, lowCI.cq, upCI.cq, Anova(cp.act.m1, type = 3)[["F value"]][1:4])
 mont.carloData.cq
 ```

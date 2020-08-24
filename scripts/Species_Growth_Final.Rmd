@@ -16,7 +16,7 @@ library(car)
 library(lsmeans)
 
   # Input data
-    df.growth <- read.csv("data/Growth/Fish_Measurement_Data_Final.csv")
+    df.growth <- read.csv("data/Fish_Measurement_Data_Final.csv")
     copper.df <- df.growth[df.growth$Species_Seq == "Copper" | df.growth$Species_Seq == "Quillback",]
     boxplot(copper.df$Number_of_Parasites ~ copper.df$Date)
 
@@ -35,13 +35,13 @@ library(lsmeans)
     start.day.cp <- subset(df.completegrowth, df.completegrowth$Date==20150704)
     last.day.cp <- subset(df.completegrowth, df.completegrowth$Date==20150718)
 
-    write.csv(last.day.blk, "data/Growth/last_day_black.csv")
-    write.csv(last.day.cp, "data/Growth/last_day_copper.csv")
-    write.csv(start.day.blk, "data/Growth/start.day.blk.csv")
-    write.csv(start.day.cp, "data/Growth/start.day.cp.csv")
+    write.csv(last.day.blk, "data/last.day.blk.csv")
+    write.csv(last.day.cp, "data/last.day.cp.csv")
+    write.csv(start.day.blk, "data/start.day.blk.csv")
+    write.csv(start.day.cp, "data/start.day.cp.csv")
     
-    copper.data <- read.csv("data/Growth/Copper_Weight.csv", header = TRUE)
-    black.data <- read.csv("data/Growth/Black_Weight.csv", header = TRUE)
+    copper.data <- read.csv("data/Copper_Weight.csv", header = TRUE)
+    black.data <- read.csv("data/Black_Weight.csv", header = TRUE)
     
 ```
 
@@ -148,15 +148,14 @@ all.data$Complex <- as.factor(all.data$Complex)
 #########################
 #### Model Selection ####
 #########################
-
   all.data <- all.data[all.data$Species_Seq == "Black" |
                        all.data$Species_Seq == "Yellowtail" |
                        all.data$Species_Seq == "Copper" |
                        all.data$Species_Seq == "Quillback",]
   
-##############################
-### Complex Level Analyses ###
-##############################
+#######
+### Complex Level Analyses
+#######
   complex.full <- lm(Per_Weight~Bucket*Complex, data = all.data)
   Anova(complex.full, type = 2)
   
@@ -184,29 +183,22 @@ all.data$Complex <- as.factor(all.data$Complex)
 ##############################  
 ## Percent weight change ##
   all.m1 <- lm(all.data$Per_Weight~all.data$Bucket*all.data$Species_Seq)
-  summary(aov(all.m1))
-  
   summary(all.m1)
   Anova(all.m1, type = 2)
  
-  # no species interaction drop interaction term
   all.m2 <- lm(all.data$Per_Weight~all.data$Bucket + all.data$Species_Seq)
   summary(all.m2)
-  summary(aov(all.m2))
   Anova(all.m2, type = 2)
-  drop1(all.m2) # Shows a significant affect of temp on growth in Quillback but N = 6 
-  
-  Anova(all.m2, type = 2)
-  
-  mc <- lsmeans(all.m2, ~ Species2, adjust = "Tukey")
-  summary(mc)
+  anova(all.m1, all.m2)
+  # RESULT: no species interaction drop interaction term
   
   all.m3 <- lm(all.data$Per_Weight~all.data$Bucket)
   summary(all.m3)
   Anova(all.m3, type = 2)
   anova(all.m2, all.m3, test = "LRT")
+  # Third model is best with just a main effect of temperature treatment 
   
-### Condition Index ###  
+## Condition Index ##
   CI.m1 <- lm(all.data$CF~all.data$Bucket*all.data$Species_Seq)
   summary(aov(CI.m1))
   Anova(CI.m1, type = 2)
@@ -218,16 +210,16 @@ all.data$Complex <- as.factor(all.data$Complex)
   CI.m3 <- lm(all.data$CF~all.data$Bucket)
   Anova(CI.m3, type = 2)
   anova(CI.m2, CI.m3, test = "LRT")
-  # Third model is best with just temperature treatment
-  
-  shapiro.test(CI.m3$residuals)
+  # Third model is best with just a main effect oftemperature treatment
 
 ############################
 #### Model Assumptions #####
 ############################
-  
-  plot(all.m2)
-  ## two outlier points still not meeting normality. Try Monte Carlo
+  shapiro.test(all.m3$residuals)
+  shapiro.test(CI.m3$residuals)
+  plot(all.m3)
+  plot(CI.m3)
+  ## not meeting normality. Try Monte Carlo
   
 ```
 
@@ -248,7 +240,7 @@ all.data$Complex <- as.factor(all.data$Complex)
 
   for(i in 1:bootstrap){
     new_grow <- lm(sample(all.data$Per_Weight)~sample(all.data$Bucket))
-    fvalues[i,] <- summary(aov(new_grow))[[1]][["F value"]][1]
+    fvalues[i,] <- Anova(new_grow, type = 2)[["F value"]][1]
   }
 
   fvalues <- as.data.frame(fvalues)
@@ -260,7 +252,7 @@ all.data$Complex <- as.factor(all.data$Complex)
     upCI[i] <- quantile(fvalues[,i], 1-alpha/2, type = 1)
   }
 
-  mont.carloData.PWC <- cbind(fval.means, lowCI, upCI, summary(aov(all.m3))[[1]][["F value"]][1])
+  mont.carloData.PWC <- cbind(fval.means, lowCI, upCI, Anova(all.m3,  type = 2)[["F value"]][1])
   mont.carloData.PWC
   ## A value higher than the upper CI indicates significance 
   
@@ -275,7 +267,7 @@ all.data$Complex <- as.factor(all.data$Complex)
 
   for(i in 1:bootstrap){
     new_CF <- lm(sample(all.data$CF)~sample(all.data$Bucket))
-    fvalues[i,] <- summary(aov(new_CF))[[1]][["F value"]][1]
+    fvalues[i,] <- Anova(new_CF, type = 2)[["F value"]][1]
   }
 
   fvalues <- as.data.frame(fvalues)
@@ -287,7 +279,7 @@ all.data$Complex <- as.factor(all.data$Complex)
     upCI[i] <- quantile(fvalues[,i], 1-alpha/2, type = 1)
   }
 
-  mont.carloData.CF <- cbind(fval.means, lowCI, upCI, summary(aov(CI.m3))[[1]][["F value"]][1])
+  mont.carloData.CF <- cbind(fval.means, lowCI, upCI, Anova(CI.m3)[["F value"]][1])
   mont.carloData.CF
   ## A value higher than the upper CI indicates significance 
 

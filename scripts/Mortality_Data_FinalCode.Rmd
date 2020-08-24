@@ -1,7 +1,7 @@
 ---
-title: "Mortality Data Analysis"
+title: "Mortality_Data_FinalCode"
 author: "Sara Michele Schaal"
-date: "5/9/2019"
+date: "6/19/2020"
 output: html_document
 ---
 
@@ -85,9 +85,11 @@ output: html_document
 ################################
 #### Complex Level Analysis ####
 ################################
+### Original model - NOT USING due to overdispersion in our data ##
  ## Logistic regression with interaction of temp and species where complexes are combined 
   log.mod.all.complex <- glm(cbind(Days_Survived, DaysDead)~Treatment_Temperature*Species3,
                            family = binomial(link = 'logit'), data = mort.data)
+
   summary(log.mod.all.complex)
   Anova(log.mod.all.complex, type = 2)
   ## Use capital Anova for sums of squares that equals Type II sums of squares where 
@@ -95,46 +97,47 @@ output: html_document
   ## only be used when there is not a significant interaction statistically more 
   ## powerful then Type III
   
- ## Check Assumptions ##
+ ## Check Assumptions 
   # Dispersion
   var(mort.data$DaysDead) # 9.71
   mean(mort.data$DaysDead) # 1.72
-  # Data are overdispersed
+  # RESULT: Data are overdispersed
   
   # Diagnostic plots for outliers and intercorrelation
   par(mfrow = c(2,2))
   plot(log.mod.all.complex)
-  # variance is not equal across data points (scale-location plot) change to quasibinomial
+  # RESULT: variance is not equal across data points (scale-location plot) change to quasibinomial
   
   # Autocorrelation
   par(mfrow = c(1,1))
   acf(log.mod.all.complex$residuals)
-  # no autocorrelation  
+  # RESULT: no autocorrelation  
   
-## Switch to quasibinomial to relax data assumptions
-  ## (this will produce conservative p-values if you have overdispersion)
-  
- ## Logistic regression with interaction of temp and species where complexes are combined 
+### QUASIBINOMIAL - due to overdispersion (this will produce conservative p-values if you have overdispersion)
   quasi.mod.all.complex <- glm(cbind(Days_Survived, DaysDead)~Treatment_Temperature*Species3,
                            family = quasibinomial(link = 'logit'), data = mort.data)
   summary(quasi.mod.all.complex)
-  Anova(quasi.mod.all.complex, type = 2)
+  Anova(quasi.mod.all.complex, type = 3)
+  # type 3 due to significant interaction
   
   # Significant interaction but check likelihood ratio test to ensure best model
   quasi.mod.all.complex2 <- glm(cbind(Days_Survived, DaysDead)~Treatment_Temperature+Species3,
                            family = quasibinomial(link = 'logit'), data = mort.data)
-  anova(quasi.mod.all.complex, quasi.mod.all.complex2, test = "LRT")
-  ## Model 1 with interaction is the best model
+  summary(quasi.mod.all.complex2)
+  Anova(quasi.mod.all.complex2, type = 2)
+  anova(quasi.mod.all.complex2, quasi.mod.all.complex , test = "LRT")
+ 
+  ## RESULT: Model 1 with interaction is the best model according to LRT
   
 ###################################
 #### Species in a Single Model ####
 ###################################
 ### All Four Species ##############
-## Logistic regression for the interaction between temperature and species on survival
+ ## Logistic regression for the interaction between temperature and species on survival
   log.mod.all.prop <- glm(cbind(Days_Survived, DaysDead)~Treatment_Temperature*Species, 
                             family = quasibinomial(link = 'logit'), data = mort.data)
   summary(log.mod.all.prop)
-  summary(aov(log.mod.all.prop))
+  Anova(log.mod.all.prop, type = 3)
   drop1(log.mod.all.prop)
   # Best Model
   # Giving warning because of the Yellowtail data. 
@@ -156,27 +159,29 @@ output: html_document
   quasiModel2 <- glm(cbind(Days_Survived, DaysDead)~Treatment_Temperature + Species2, 
               family = quasibinomial(link = "logit"),
               data = mort.data)
-  anova(quasiModel1, quasiModel2,  test = "LRT")
-  # Can drop the interaction term due to nonsignificant LRT
+  
   Anova(quasiModel2, type = 2)
   summary(quasiModel2)
+  anova(quasiModel1, quasiModel2,  test = "LRT")
+  # RESULT: Can drop the interaction term due to nonsignificant LRT
   
   # run least-squares means to identify which species are different
   multcompar <- lsmeans(quasiModel2, pairwise ~ Species2, adjust = "Tukey")
   summary(multcompar)
+  
 ```
 
-# Plotting
-### Proportion days survived across temperature - Complex level
-### (4 panel plot)
+##Plotting
+# Proportion days survived across temperature - Complex level
+# (4 panel plot)
 ```{r}
 ###################################################
 #### Create Prediction for Logistic Regression ####
 ###################################################
 
-  BY.pred <- predict(quasi.mod.all.complex, data.frame(Treatment_Temperature = 10:23, 
+  BY.pred <- predict(log.mod.all.complex, data.frame(Treatment_Temperature = 10:23, 
                                                      Species3 = "BY"), se.fit = TRUE)
-  CQ.pred <- predict(quasi.mod.all.complex, data.frame(Treatment_Temperature = 10:23, 
+  CQ.pred <- predict(log.mod.all.complex, data.frame(Treatment_Temperature = 10:23, 
                                                      Species3 = "CQ"), se.fit = TRUE)
   Quill.pred <- predict(quasiModel2, data.frame(Treatment_Temperature = 10:23, 
                                                 Species2 = "Quillback"), se.fit = TRUE)
@@ -265,6 +270,7 @@ output: html_document
          Treatment_Temperature[mort.data$Species=="Quillback"], 
        data = mort.data, pch = 17, col = "brown", yaxt = "n",
        bty = "l", ylim = c(0,1), xlim = c(10,23), xlab = "", ylab = "")
+  legend("bottomleft", legend = "Quillback", pch = 17, col = "brown", cex = 0.8)
   points(y=exp(Quill.pred$fit)/(1+exp(Quill.pred$fit)), x = 10:23, type = "l")
   points(y = exp(Quill.pred$fit+1.96*Quill.pred$se.fit)/
            (1+exp(Quill.pred$fit+1.96*Quill.pred$se.fit)), 
@@ -272,7 +278,7 @@ output: html_document
   points(y = exp(Quill.pred$fit-1.96*Quill.pred$se.fit)/
              (1+exp(Quill.pred$fit-1.96*Quill.pred$se.fit)), 
            x = 10:23, type = "l", col = "lightgrey")
-  legend("bottomleft", legend = "Quillback", pch = 17, col = "brown", cex = 0.8)
+  #points(y=qb.y, x = 10:23, type = "l")
   mtext(text = "D", side = 3, adj = 0.01, padj = 0.01)
   mtext("Proportion of Days Survived", side = 2, outer = TRUE, cex = 1, line = 2.2)
   mtext(expression(paste('Treatment Temperature (',degree,'C)',sep='')), side = 1, 
