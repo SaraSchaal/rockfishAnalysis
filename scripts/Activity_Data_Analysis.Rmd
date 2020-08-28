@@ -439,7 +439,7 @@ output: html_document
 #########################
 #### BY Complex Plot ####
 #########################
-  # Save plot
+   # Save plot
     day.plot <- ggplot(data=complete.act.data, 
                          aes(x=RTemperature, y=mean.both, 
                             group=as.factor(Days_Since_Start), 
@@ -449,14 +449,15 @@ output: html_document
     
   # Create plot 
    bAll.panel <- day.plot + facet_wrap(~Days_Since_Start) +
-     labs(y = "Mean Activity", x = "Temperature") +
+     labs(y = "Mean Activity", x = "Temperature (°C)") +
      scale_color_gradient(low = "gainsboro", high = "black", name = "Time") + 
      theme_bw() + 
      theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
            panel.grid.minor = element_blank(),
            axis.line = element_line(colour = "black"),
            legend.position = "none") + 
-     scale_x_continuous(breaks = pretty_breaks()) + 
+     scale_x_continuous(breaks = pretty_breaks(n = 3)) + 
+     #scale_size(range = c(1,3))
      scale_radius(NULL, NULL)
    
 ##############################
@@ -471,9 +472,9 @@ output: html_document
                   geom_smooth(method = "lm", se = FALSE) 
   # Create plot
    cpAll.panel <- day.plot.cp + facet_wrap(~Days_Since_Start) + 
-     labs(y = "Mean Activity", x = "Temperature") + 
+     labs(y = "Mean Activity", x = "Temperature (°C)") + 
      scale_color_gradient(low = "gainsboro", high = "darkorange", name = "Time") + 
-     scale_x_continuous(NULL) +
+     scale_x_continuous(breaks = pretty_breaks(n = 3)) +
      theme_bw() + 
      theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
            panel.grid.minor = element_blank(),
@@ -485,7 +486,7 @@ output: html_document
 #### Black Rockfish Single Plot ####
 ####################################
   # Create plot
-   bAll.single <- day.plot + labs(y = "Mean Activity", x = "Temperature") + 
+   bAll.single <- day.plot + labs(y = "Mean Activity", x = "Temperature (°C)") + 
    scale_color_gradient(low = "gainsboro", high = "black", 
                         name = "Days Since \nStart of \nExperiment", 
                         breaks = c(4, 8, 12, 16), 
@@ -503,7 +504,7 @@ output: html_document
 #### Copper Rockfish Single Plot ####
 #####################################
   # Create plot
-   cpAll.single <- day.plot.cp + labs(y = "Mean Activity", x = "Temperature") + 
+   cpAll.single <- day.plot.cp + labs(y = "Mean Activity", x = "Temperature (°C)") + 
    scale_color_gradient(low = "gainsboro", high = "darkorange", 
                         name = "Days Since \nStart of \nExperiment", 
                         breaks = c(4, 8, 12, 16), 

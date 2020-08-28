@@ -281,6 +281,6 @@ output: html_document
   #points(y=qb.y, x = 10:23, type = "l")
   mtext(text = "D", side = 3, adj = 0.01, padj = 0.01)
   mtext("Proportion of Days Survived", side = 2, outer = TRUE, cex = 1, line = 2.2)
-  mtext(expression(paste('Treatment Temperature (',degree,'C)',sep='')), side = 1, 
+  mtext(expression(paste('Temperature (',degree,'C)',sep='')), side = 1, 
         outer = TRUE, cex = 1, line = 2.2)
 ```
